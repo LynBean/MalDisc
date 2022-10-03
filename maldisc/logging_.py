@@ -17,7 +17,7 @@ FILE_NAME = 'Script.log'
 LOG_FILE = os.path.join(FILE_PATH, FILE_NAME)
 
 if not os.path.exists(FILE_PATH):
-    os.mkdir(FILE_PATH)
+    os.mkdir(FILE_PATH + '/logs')
 
 def _get_console_handler():
     console_handler = logging.StreamHandler()
