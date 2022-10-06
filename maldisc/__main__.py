@@ -14,23 +14,25 @@ from .constants import *
 from .logging_ import get_logger
 
 def main():
-    logger = get_logger('maldisc')
+    global config
     
+    logger = get_logger()
+
     if not os.path.exists(DIR_PATH):
         os.mkdir(DIR_PATH)
-        
+
     if not os.path.isfile(DIR_PATH + '/config.json'):
         with open(DIR_PATH + '/config.json', 'w+') as file:
             json.dump(DEFAULT_CONFIG, file, indent = 4, sort_keys = False)
         sys.exit(f'config.json not found. A default one has been created under the following path:\n{DIR_PATH}/config.json\nPlease fill out the config.json file before running the bot')
-        
+
     else:
         with open(DIR_PATH + '/config.json') as file:
             config = json.load(file)
 
     intents = discord.Intents.default()
     intents.message_content = True
-    
+
     def get_prefix(bot, message):
         total = []
         a = map(''.join, itertools.product(*((c.upper(), c.lower()) for c in config['prefix'])))
@@ -61,7 +63,7 @@ def main():
             return
         if message.content.lower().startswith(f'{config["prefix"].lower()} '):
             message.content = config["prefix"] + message.content[len(config["prefix"]) + 1:]
-            
+
         await bot.process_commands(message)
 
     @bot.event
@@ -80,24 +82,24 @@ def main():
     async def on_command_error(context: Context, error) -> None:
         if isinstance(error, commands.CommandNotFound):
             return
-        
+
         else:
             full_command_name = context.command.qualified_name
             split = full_command_name.split(' ')
             executed_command = str(split[0])
             if context.guild is not None:
                 logger.error(
-                    f'Failed to execute {executed_command} command in {context.guild.name} (ID: {context.guild.id}) by {context.author} (ID: {context.author.id})\n{error}')
+                    f'Failed to execute {executed_command} command in {context.guild.name} (ID: {context.guild.id}) by {context.author} (ID: {context.author.id})\n{error}\n')
             else:
                 logger.error(
-                    f'Failed to execute {executed_command} command by {context.author} (ID: {context.author.id}) in DMs\n{error}')
-                
+                    f'Failed to execute {executed_command} command by {context.author} (ID: {context.author.id}) in DMs\n{error}\n')
+
             return await context.send(f'**{context.author.mention}** {error}')
-    
+
     @bot.command()
     async def ping(context: Context):
         await context.send(f'Pong! {round(bot.latency * 1000)}ms')
-        
+
     @bot.command()
     async def reload(context: Context):
         await load_cogs(
@@ -111,31 +113,32 @@ def main():
         for file in os.listdir(os.path.dirname(os.path.realpath(__file__))):
             if not file.endswith('.py'):
                 continue
-            
+
             extension = file[:-3]
             try:
                 await bot.load_extension(f'maldisc.{extension}')
                 logger.info(f'Loaded extension: {extension}')
                 if bot_command == True:
                     await context.send(f'✅ Loaded extension: {extension}')
-                    
+
             except commands.ExtensionAlreadyLoaded:
                 await bot.reload_extension(f'maldisc.{extension}')
                 logger.info(f'Reloaded extension: {extension}')
                 if bot_command == True:
                     await context.send(f'⚠️ Reloaded extension: {extension}')
-                    
+
             except Exception as e:
                 exception = f'{type(e).__name__}: {e}'
-                logger.error(f'Failed to load extension: {extension}\n{exception}')
+                logger.error(f'Failed to load extension: {extension}\n{exception}\n')
                 if bot_command == True:
                     await context.send(f'❌ Failed to load extension: {extension}\n{exception}')
 
 
     asyncio.run(load_cogs())
-    bot.run(config['token'], reconnect = True)
+    bot.run(
+        config['token'],
+        reconnect = True)
 
 
 if '__main__' == __name__:
     main()
-    

@@ -1,48 +1,113 @@
 
 import os
+import sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from colorama import Back, Fore, Style
 
 from .constants import *
 
-FORMATTER = logging.Formatter(
-    f'[%(asctime)s][%(levelname)s][%(name)s]	%(message)s')
-CONSOLE_FORMATTER = logging.Formatter(
-    f'{Fore.BLACK + Style.BRIGHT}%(asctime)s {Fore.BLUE}%(levelname)s     {Style.RESET_ALL + Fore.LIGHTMAGENTA_EX + Style.DIM}%(name)s {Style.RESET_ALL}%(message)s',
-    datefmt = '%Y-%m-%d %H:%M:%S')
 
 FILE_PATH = DIR_PATH + '/logs'
 FILE_NAME = 'Script.log'
 LOG_FILE = os.path.join(FILE_PATH, FILE_NAME)
+DISCORD_LOG_FILE = os.path.join(FILE_PATH, 'Discord.log')
 
 if not os.path.exists(FILE_PATH):
     os.mkdir(FILE_PATH + '/logs')
 
-def _get_console_handler():
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(CONSOLE_FORMATTER)
-    return console_handler
 
-def _get_file_handler():
-    file_handler = TimedRotatingFileHandler(LOG_FILE, when='midnight', backupCount = 7)
-    file_handler.setFormatter(FORMATTER)
-    return file_handler
+def stream_supports_colour(stream) -> bool:
+    is_a_tty = hasattr(stream, 'isatty') and stream.isatty()
+    if sys.platform != 'win32':
+        return is_a_tty
 
-def get_logger(logger_name):
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.DEBUG) # Better to have too much log than not enough
-    logger.addHandler(_get_console_handler())
-    logger.addHandler(_get_file_handler())
-    # With this pattern, it's rarely necessary to propagate the error up to parent
-    logger.propagate = False
+    # ANSICON checks for things like ConEmu
+    # WT_SESSION checks if this is Windows Terminal
+    # VSCode built-in terminal supports colour too
+    return is_a_tty and ('ANSICON' in os.environ or 'WT_SESSION' in os.environ or os.environ.get('TERM_PROGRAM') == 'vscode')
+
+
+class _ColourFormatter(logging.Formatter):
+
+    # ANSI codes are a bit weird to decipher if you're unfamiliar with them, so here's a refresher
+    # It starts off with a format like \x1b[XXXm where XXX is a semicolon separated list of commands
+    # The important ones here relate to colour.
+    # 30-37 are black, red, green, yellow, blue, magenta, cyan and white in that order
+    # 40-47 are the same except for the background
+    # 90-97 are the same but "bright" foreground
+    # 100-107 are the same as the bright ones but for the background.
+    # 1 means bold, 2 means dim, 0 means reset, and 4 means underline.
+
+    LEVEL_COLOURS = [
+        (logging.DEBUG, '\x1b[40;1m'),
+        (logging.INFO, '\x1b[34;1m'),
+        (logging.WARNING, '\x1b[33;1m'),
+        (logging.ERROR, '\x1b[31m'),
+        (logging.CRITICAL, '\x1b[41m'),
+    ]
+
+    FORMATS = {
+        level: logging.Formatter(
+            f'\x1b[30;1m%(asctime)s\x1b[0m {colour}%(levelname)-8s\x1b[0m \x1b[35m%(name)s\x1b[0m %(message)s',
+            '%Y-%m-%d %H:%M:%S',
+        )
+        for level, colour in LEVEL_COLOURS
+    }
+
+    def format(self, record):
+        formatter = self.FORMATS.get(record.levelno)
+        if formatter is None:
+            formatter = self.FORMATS[logging.DEBUG]
+
+        # Override the traceback to always print in red
+        if record.exc_info:
+            text = formatter.formatException(record.exc_info)
+            record.exc_text = f'\x1b[31m{text}\x1b[0m'
+
+        output = formatter.format(record)
+
+        # Remove the cache layer
+        record.exc_text = None
+        return output
+
+
+
+def setup_logging(
+    *handler: logging.Handler,
+    level: int = logging.DEBUG,
+    ) -> logging.Logger:
+    
+    library, _, _ = __name__.partition('.')
+    logger = logging.getLogger(f'maldisc.{library}')
+    logger.setLevel(level)
+    
+    for hdlr in handler:
+        if isinstance(hdlr, logging.StreamHandler) and stream_supports_colour(hdlr.stream):
+            formatter = _ColourFormatter()
+        else:
+            dt_fmt = '%Y-%m-%d %H:%M:%S'
+            formatter = logging.Formatter(
+                '[{asctime}] [{levelname:<8}] {name}: {message}',
+                dt_fmt,
+                style = '{')
+            
+        hdlr.setFormatter(formatter)
+        logger.addHandler(hdlr)
+        
     return logger
 
-def remove_handler(logger):
-    for h in range(len(logger.handlers)): logger.removeHandler(logger.handlers[0])
-    return logger
 
-def shutdown():
-    logging.shutdown()
-    return True
+def stream_handler():
+    handler = logging.StreamHandler()
+    return handler
+
+def file_handler():
+    handler = TimedRotatingFileHandler(LOG_FILE, when='midnight', backupCount = 7)
+    return handler
+
+def get_logger():
+    logger = setup_logging(
+        *(stream_handler(),
+        file_handler())
+    )
+    return logger
