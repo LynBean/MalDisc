@@ -38,7 +38,7 @@ async def JikanRequests(url: str, max_retry: int = 5) -> dict:
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'
                         },
 
-                    timeout = 5
+                    timeout = 2
 
                     ) as response:
 

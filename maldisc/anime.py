@@ -1,11 +1,12 @@
 
 import asyncio
+import time
 
-import discord
 from discord.enums import ButtonStyle
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ui import Button, Select, View
+import discord
 
 from .constants import *
 from .requests_ import *
@@ -36,13 +37,13 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
 
             embed.set_thumbnail(url = self.response['images']['jpg']['large_image_url'])
             embed.add_field(name = 'Score',      value = f"{self.response['score']} ⭐", inline = True)
-            embed.add_field(name = 'Rank',       value = f"No. {self.response['rank']} ⬆️", inline = True)
-            embed.add_field(name = 'Popularity', value = f"No. {self.response['popularity']} ⬆️", inline = True)
-            embed.add_field(name = 'Members',    value = f"{self.response['members']} 👦🏽", inline = True)
-            embed.add_field(name = 'Favorites',  value = f"{self.response['favorites']} ❤️", inline = True)
+            embed.add_field(name = 'Rank',       value = f"No. {self.response['rank']:,} ⬆️", inline = True)
+            embed.add_field(name = 'Popularity', value = f"No. {self.response['popularity']:,} ⬆️", inline = True)
+            embed.add_field(name = 'Members',    value = f"{self.response['members']:,} 👦🏽", inline = True)
+            embed.add_field(name = 'Favorites',  value = f"{self.response['favorites']:,} ❤️", inline = True)
             embed.add_field(name = 'Type',       value = f"{self.response['type']} 📺", inline = True)
             embed.add_field(name = 'Status',     value = f"{self.response['status']} 🟩", inline = True)
-            embed.add_field(name = 'Episodes',   value = f"{self.response['episodes']} 🟦", inline = True)
+            embed.add_field(name = 'Episodes',   value = f"{self.response['episodes']:,} 🟦", inline = True)
             embed.add_field(name = 'Source',     value = f"{self.response['source']} 🟨", inline = True)
             embed.add_field(name = 'Aired',      value = f"{self.response['aired']['string']} 🟪", inline = True)
             embed.add_field(name = 'Season',     value = f"{self.response['season']} 🍂", inline = True)
@@ -89,11 +90,14 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                         voice_actor = voice_actor['person']['name']
                         break
 
+                else: voice_actor = 'Unknown'
+
+
                 if dict['role'] == 'Main':
                     if len(embeds) < 9:
                         mc_embed = discord.Embed(
                             title = f"{dict['character']['name']}",
-                            description = f"Liked: {dict['favorites']}\n{voice_actor}",
+                            description = f"Liked: {dict['favorites']:,}\n{voice_actor}",
                             url = dict['character']['url'],
                             color = 0xf37a12
                         )
@@ -107,7 +111,7 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                     else:
                         sc_embed.add_field(
                         name = f"{dict['character']['name']} (Main)",
-                        value = f"Liked: {dict['favorites']}\n{voice_actor}",
+                        value = f"Liked: {dict['favorites']:,}\n{voice_actor}",
                         inline = True)
 
                         continue
@@ -115,12 +119,12 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                 if dict['role'] == 'Supporting':
                     sc_embed.add_field(
                         name = f"{dict['character']['name']}",
-                        value = f"Liked: {dict['favorites']}\n{voice_actor}",
+                        value = f"Liked: {dict['favorites']:,}\n{voice_actor}",
                         inline = True)
 
                     continue
 
-            embeds.append(sc_embed)
+            if len(sc_embed.fields) != 0: embeds.append(sc_embed)
             return embeds
 
         async def json(self) -> dict:
@@ -266,7 +270,7 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
 
                 embed = discord.Embed(
                     title = f"**{dict['title']}**",
-                    description = f"Author: {dict['author_username']}\nComments: {dict['comments']}",
+                    description = f"Author: {dict['author_username']}\nComments: {dict['comments']:,}",
                     url = dict['url'],
                     color = 0xf37a12
                 )
@@ -395,6 +399,7 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
             mal_id = response['data'][0]['mal_id']
 
         # Initialize Variables
+        start_time = time.time()
         overview = self.Overview(mal_id)
         overview.embeds = await overview.embeds()
         overview.json = await overview.json()
@@ -407,6 +412,10 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
         forum = self.Forum(mal_id)
         forum.embeds = await forum.embeds()
         external_links = (await JikanAnimeExternal(mal_id))['data']
+
+        # Show time taken of retrieving data from API inside footer
+        overview.embeds[0].set_footer(
+            text = f"(Time taken: {round(time.time() - start_time, 2)} seconds)")
 
         # Making Buttons and Selections for the embed
         class View(discord.ui.View):
