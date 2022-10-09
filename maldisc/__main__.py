@@ -6,16 +6,15 @@ import os
 import platform
 import sys
 
-import discord
 from discord.ext import commands
 from discord.ext.commands import Bot, Context
+import discord
 
 from .constants import *
-from .logging_ import get_logger
+from .utils import get_logger
 
-def main():
-    global config
-    
+async def main():
+
     logger = get_logger()
 
     if not os.path.exists(DIR_PATH):
@@ -24,14 +23,13 @@ def main():
     if not os.path.isfile(DIR_PATH + '/config.json'):
         with open(DIR_PATH + '/config.json', 'w+') as file:
             json.dump(DEFAULT_CONFIG, file, indent = 4, sort_keys = False)
+
         sys.exit(f'config.json not found. A default one has been created under the following path:\n{DIR_PATH}/config.json\nPlease fill out the config.json file before running the bot')
 
     else:
         with open(DIR_PATH + '/config.json') as file:
             config = json.load(file)
 
-    intents = discord.Intents.default()
-    intents.message_content = True
 
     def get_prefix(bot, message):
         total = []
@@ -41,6 +39,8 @@ def main():
 
         return commands.when_mentioned_or(*prefixes)(bot, message)
 
+    intents = discord.Intents.default()
+    intents.message_content = True
     bot = Bot(
         case_insensitive = True,
         command_prefix = get_prefix,
@@ -134,11 +134,7 @@ def main():
                     await context.send(f'❌ Failed to load extension: {extension}\n{exception}')
 
 
-    asyncio.run(load_cogs())
-    bot.run(
+    await load_cogs()
+    await bot.start(
         config['token'],
         reconnect = True)
-
-
-if '__main__' == __name__:
-    main()

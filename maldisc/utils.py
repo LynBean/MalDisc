@@ -76,11 +76,11 @@ def setup_logging(
     *handler: logging.Handler,
     level: int = logging.DEBUG,
     ) -> logging.Logger:
-    
+
     library, _, _ = __name__.partition('.')
     logger = logging.getLogger(f'maldisc.{library}')
     logger.setLevel(level)
-    
+
     for hdlr in handler:
         if isinstance(hdlr, logging.StreamHandler) and stream_supports_colour(hdlr.stream):
             formatter = _ColourFormatter()
@@ -90,10 +90,10 @@ def setup_logging(
                 '[{asctime}] [{levelname:<8}] {name}: {message}',
                 dt_fmt,
                 style = '{')
-            
+
         hdlr.setFormatter(formatter)
         logger.addHandler(hdlr)
-        
+
     return logger
 
 

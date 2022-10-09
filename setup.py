@@ -21,7 +21,7 @@ def get_version():
 
 
 if sys.version_info < (3, 7):
-    sys.exit('Library System requires Python >= 3.7.')
+    sys.exit('MalDisc requires Python >= 3.7.')
 
 
 setup(
@@ -37,6 +37,7 @@ setup(
     install_requires = [
         'aiohttp',
         'asyncio',
+        'authlib',
         'discord',
         'platformdirs',
         ],

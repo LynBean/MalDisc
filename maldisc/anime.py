@@ -15,6 +15,271 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
     def __init__(self, bot):
         self.bot = bot
 
+    class Overview:
+        def __init__(self, mal_id):
+            self.mal_id = mal_id
+            self.response = None
+
+        async def get(self):
+            if self.response == None:
+                self.response = (await JikanAnimeFull(mal_id = self.mal_id))['data']
+
+        async def embeds(self) -> [discord.Embed]:
+            await self.get()
+
+            embed = discord.Embed(
+                title = self.response['title'],
+                url = self.response['url'],
+                description = self.response['synopsis'],
+                color = 0xf37a12
+            )
+
+            embed.set_thumbnail(url = self.response['images']['jpg']['large_image_url'])
+            embed.add_field(name = 'Score',      value = f"{self.response['score']} ⭐", inline = True)
+            embed.add_field(name = 'Rank',       value = f"No. {self.response['rank']} ⬆️", inline = True)
+            embed.add_field(name = 'Popularity', value = f"No. {self.response['popularity']} ⬆️", inline = True)
+            embed.add_field(name = 'Members',    value = f"{self.response['members']} 👦🏽", inline = True)
+            embed.add_field(name = 'Favorites',  value = f"{self.response['favorites']} ❤️", inline = True)
+            embed.add_field(name = 'Type',       value = f"{self.response['type']} 📺", inline = True)
+            embed.add_field(name = 'Status',     value = f"{self.response['status']} 🟩", inline = True)
+            embed.add_field(name = 'Episodes',   value = f"{self.response['episodes']} 🟦", inline = True)
+            embed.add_field(name = 'Source',     value = f"{self.response['source']} 🟨", inline = True)
+            embed.add_field(name = 'Aired',      value = f"{self.response['aired']['string']} 🟪", inline = True)
+            embed.add_field(name = 'Season',     value = f"{self.response['season']} 🍂", inline = True)
+
+            if self.response['airing'] == True:
+                embed.add_field(name = 'Broadcast', value = f"{self.response['broadcast']['string']} 🆕", inline = True)
+
+            return [embed]
+
+        async def json(self) -> dict:
+            await self.get()
+            return self.response
+
+
+    class Characters:
+        def __init__(self, mal_id):
+            self.mal_id = mal_id
+            self.response = None
+
+        async def get(self):
+            if self.response == None:
+                self.response = (await JikanAnimeCharacters(mal_id = self.mal_id))['data']
+
+        async def embeds(self) -> [discord.Embed]:
+            await self.get()
+
+            if len(self.response) == 0:
+                embed = discord.Embed(
+                    title = 'No characters found',
+                    color = 0xf37a12)
+                return [embed]
+
+            embeds = []
+            sc_embed = discord.Embed(
+                title = f"**Supporting Characters**",
+                color = 0xf37a12
+            )
+
+            # Splitting the main characters and the supporting characters into different embeds
+            for dict in self.response:
+
+                for voice_actor in dict['voice_actors']:
+                    if voice_actor['language'] == 'Japanese':
+                        voice_actor = voice_actor['person']['name']
+                        break
+
+                if dict['role'] == 'Main':
+                    if len(embeds) < 9:
+                        mc_embed = discord.Embed(
+                            title = f"{dict['character']['name']}",
+                            description = f"Liked: {dict['favorites']}\n{voice_actor}",
+                            url = dict['character']['url'],
+                            color = 0xf37a12
+                        )
+
+                        if dict['character']['images']['jpg']['image_url'] != None:
+                            mc_embed.set_image(url = dict['character']['images']['jpg']['image_url'])
+
+                        embeds.append(mc_embed)
+                        continue
+
+                    else:
+                        sc_embed.add_field(
+                        name = f"{dict['character']['name']} (Main)",
+                        value = f"Liked: {dict['favorites']}\n{voice_actor}",
+                        inline = True)
+
+                        continue
+
+                if dict['role'] == 'Supporting':
+                    sc_embed.add_field(
+                        name = f"{dict['character']['name']}",
+                        value = f"Liked: {dict['favorites']}\n{voice_actor}",
+                        inline = True)
+
+                    continue
+
+            embeds.append(sc_embed)
+            return embeds
+
+        async def json(self) -> dict:
+            await self.get()
+            return self.response
+
+
+    class Relations:
+        def __init__(self, mal_id):
+            self.mal_id = mal_id
+            self.response = None
+
+        async def get(self):
+            if self.response == None:
+                self.response = (await JikanAnimeRelations(mal_id = self.mal_id))['data']
+
+        async def embeds(self) -> [discord.Embed]:
+            await self.get()
+
+            if len(self.response) == 0:
+                embed = discord.Embed(
+                    title = 'No Relations found',
+                    color = 0xf37a12)
+                return [embed]
+
+            embed = discord.Embed(
+                title = 'Relations',
+                color = 0xf37a12
+            )
+
+            for dict in self.response:
+
+                for i in range(len(dict['entry'])):
+                    embed.add_field(
+                        name = f"**{dict['relation']} ({dict['entry'][i]['type']})**",
+                        value = f"{dict['entry'][i]['name']}\n{dict['entry'][i]['url']}",
+                        inline = True)
+
+            return [embed]
+
+        async def json(self) -> dict:
+            await self.get()
+            return self.response
+
+
+    class Episodes:
+        def __init__(self, mal_id):
+            self.mal_id = mal_id
+            self.response = None
+
+        async def get(self):
+            if self.response == None:
+                self.response = (await JikanAnimeEpisodes(mal_id = self.mal_id))['data']
+
+        async def embeds(self) -> [discord.Embed]:
+            await self.get()
+
+            if len(self.response) == 0:
+                embed = discord.Embed(
+                    title = 'No Episodes found',
+                    color = 0xf37a12)
+                return [embed]
+
+            embed = discord.Embed(
+                title = 'Episodes',
+                color = 0xf37a12
+            )
+
+            for dict in self.response:
+                embed.add_field(
+                    name = f"**Episode {dict['mal_id']}: {dict['title']}**",
+                    value = f"{dict['score']} ⭐\n{dict['forum_url']}",
+                    inline = True)
+
+            return [embed]
+
+        async def json(self) -> dict:
+            await self.get()
+            return self.response
+
+
+    class News:
+        def __init__(self, mal_id):
+            self.mal_id = mal_id
+            self.response = None
+
+        async def get(self):
+            if self.response == None:
+                self.response = (await JikanAnimeNews(mal_id = self.mal_id))['data']
+
+        async def embeds(self) -> [discord.Embed]:
+            await self.get()
+
+            if len(self.response) == 0:
+                embed = discord.Embed(
+                    title = 'No News found',
+                    color = 0xf37a12)
+                return [embed]
+
+            embeds = []
+            # Maximum embeds in a message is 10, so only can show up to 10 news
+            for i, dict in enumerate(self.response):
+                if i == 10: break
+
+                embed = discord.Embed(
+                    title = f"**{dict['title']}**",
+                    description = f"{dict['excerpt']}",
+                    url = dict['url'],
+                    color = 0xf37a12
+                )
+                embed.set_image(url = dict['images']['jpg']['image_url'])
+                embed.set_footer(text = f"Published on {dict['date']}")
+                embeds.append(embed)
+
+            return embeds
+
+        async def json(self) -> dict:
+            await self.get()
+            return self.response
+
+    class Forum:
+        def __init__(self, mal_id):
+            self.mal_id = mal_id
+            self.response = None
+
+        async def get(self):
+            if self.response == None:
+                self.response = (await JikanAnimeForum(mal_id = self.mal_id))['data']
+
+        async def embeds(self) -> [discord.Embed]:
+            await self.get()
+
+            if len(self.response) == 0:
+                embed = discord.Embed(
+                    title = 'No Forum found',
+                    color = 0xf37a12)
+                return [embed]
+
+            embeds = []
+            # Maximum embeds in a message is 10, so only can show up to 10 news
+            for i, dict in enumerate(self.response):
+                if i == 10: break
+
+                embed = discord.Embed(
+                    title = f"**{dict['title']}**",
+                    description = f"Author: {dict['author_username']}\nComments: {dict['comments']}",
+                    url = dict['url'],
+                    color = 0xf37a12
+                )
+                embed.set_footer(text = f"Published on {dict['date']}")
+                embeds.append(embed)
+
+            return embeds
+
+        async def json(self) -> dict:
+            await self.get()
+            return self.response
+
+
     @commands.hybrid_command(
         name = 'ima',
         description = 'Search your favorite anime on MyAnimeList')
@@ -35,24 +300,27 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
         """
 
         # Send a request to REST API to retrieve similar animes based on the anime name
-        response = await JikanAnimeSearch(query = name)
+        response = await AnimeSearch(query = name)
 
         # If the response is empty, then return
         if len(response['data']) == 0:
-            await context.send('No results found')
+            await context.send(
+                embed = discord.Embed(
+                    title = 'No results found',
+                    color = 0xf37a12))
             return
 
         # If the there are more than 1 results, then send a select menu
         page = 0
-        
+
         while len(response['data']) > 1:
-            
+
             # Create pages
             embed = discord.Embed(
                 title = '**MyAnimeList**',
                 description = f'{context.author.mention} Here are all similar animes based on your request:\n> **` {name} `**',
                 url = f'https://myanimelist.net/search/all?q={name.replace(" ", "%20")}&cat=all')
-            
+
             embed.set_thumbnail(url = 'https://upload.wikimedia.org/wikipedia/commons/7/7a/MyAnimeList_Logo.png')
             embed.set_footer(text = f'Page {page + 1} of {len(response["data"]) // 4 + 1}')
 
@@ -68,31 +336,29 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
 
             except IndexError:
                 pass
-            
-            # If the message is already sent, then edit it 
+
+            # If the message is already sent, then edit it
             try:
                 message = await message.edit(embed = embed)
-                
+
             # First time sending the message, with adding the reactions
             except UnboundLocalError:
                 message = await context.send(embed = embed)
-                
+
                 for i in range(4 if len(response['data']) > 4 else len(response['data'])):
                     emoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣']
                     await message.add_reaction(emoji[i])
-                    
+
                 if len(response['data']) > 4:
                     for emoji in ['◀️', '▶️']:
                         await message.add_reaction(emoji)
-
-                await message.add_reaction('❌')
 
             # Wait for a reaction
             try:
                 reaction, user = await self.bot.wait_for(
                     'reaction_add',
-                    check = lambda reaction, user: reaction.message == message and str(reaction.emoji) in ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '◀️', '▶️', '❌'],
-                    timeout = 60)
+                    check = lambda reaction, user: reaction.message == message and str(reaction.emoji) in ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '◀️', '▶️'],
+                    timeout = 180)
 
             except asyncio.TimeoutError:
                 await message.delete()
@@ -112,11 +378,6 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                 else:
                     page += 1
 
-            # Cancel the operation
-            elif str(reaction.emoji) == '❌':
-                await message.delete()
-                return
-
             # Retrieve the anime id based on selected number
             else:
                 for index, emoji in enumerate(['1️⃣', '2️⃣', '3️⃣', '4️⃣']):
@@ -126,107 +387,33 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                     mal_id = response['data'][index + page * 4]['mal_id']
                     await message.delete()
                     break
-                
+
                 break
-        
+
         # If previously the response only has 1 result, then will skip the select menu, and directly go to the anime page
         if len(response['data']) == 1:
             mal_id = response['data'][0]['mal_id']
-        
-        
-        # Making Overview Embed
-        class Overview(object):
-            def __init__(self, mal_id):
-                self.mal_id = mal_id
-                self.response = None
-                
-            async def get(self):
-                if self.response == None:
-                    self.response = (await JikanAnimeFull(mal_id = self.mal_id))['data']
-                    
-            async def embed(self) -> discord.Embed:
-                await self.get()
-                embed = discord.Embed(
-                    title = self.response['title'],
-                    url = self.response['url'],
-                    description = self.response['synopsis'],
-                    color = 0xf37a12
-                )
-                
-                embed.set_thumbnail(url = self.response['images']['jpg']['large_image_url'])
-                embed.add_field(name = 'Score',      value = f"{self.response['score']} ⭐", inline = True)
-                embed.add_field(name = 'Rank',       value = f"No. {self.response['rank']} ⬆️", inline = True)
-                embed.add_field(name = 'Popularity', value = f"No. {self.response['popularity']} ⬆️", inline = True)
-                embed.add_field(name = 'Members',    value = f"{self.response['members']} 👦🏽", inline = True)
-                embed.add_field(name = 'Favorites',  value = f"{self.response['favorites']} ❤️", inline = True)
-                embed.add_field(name = 'Type',       value = f"{self.response['type']} 📺", inline = True)
-                embed.add_field(name = 'Status',     value = f"{self.response['status']} 🟩", inline = True)
-                embed.add_field(name = 'Episodes',   value = f"{self.response['episodes']} 🟦", inline = True)
-                embed.add_field(name = 'Source',     value = f"{self.response['source']} 🟨", inline = True)
-                embed.add_field(name = 'Aired',      value = f"{self.response['aired']['string']} 🟪", inline = True)
-                embed.add_field(name = 'Season',     value = f"{self.response['season']} 🍂", inline = True)
 
-                if self.response['airing'] == True:
-                    embed.add_field(name = 'Broadcast', value = f"{self.response['broadcast']['string']} 🆕", inline = True)
-
-                return embed
-            
-            async def json(self) -> dict:
-                await self.get()
-                return self.response
-                
-                
-        # Making Characters Embed
-        class Characters(object):
-            def __init__(self, mal_id):
-                self.mal_id = mal_id
-                self.response = None
-                
-            async def get(self):
-                if self.response == None:
-                    self.response = (await JikanAnimeCharacters(mal_id = self.mal_id))['data']
-                
-            async def embed(self) -> discord.Embed:
-                await self.get()
-                embed = discord.Embed(
-                    title = 'Characters',
-                    color = 0xf37a12
-                )
-                
-                for dict in self.response:
-                    
-                    for i in range(len(dict['voice_actors'])):
-                        if dict['voice_actors'][i]['language'] != 'Japanese':
-                            continue
-                        
-                        voice_actor = dict['voice_actors'][i]['person']['name']
-                        break
-                            
-                    embed.add_field(
-                        name = f"**{dict['character']['name']} ({dict['favorites']}❤️) ({dict['role']})**",
-                        value = f"Voice Actor: {voice_actor}",
-                        inline = False)
-                    
-                return embed
-            
-            async def json(self) -> dict:
-                await self.get()
-                return self.response
-            
-        # Initialize Embed Variables
-        overview = Overview(mal_id)
-        overview.embed = await overview.embed()
+        # Initialize Variables
+        overview = self.Overview(mal_id)
+        overview.embeds = await overview.embeds()
         overview.json = await overview.json()
-        characters = Characters(mal_id)
-        characters.embed = await characters.embed()
-        characters.json = await characters.json()
-        
+        characters = self.Characters(mal_id)
+        characters.embeds = await characters.embeds()
+        relations = self.Relations(mal_id)
+        relations.embeds = await relations.embeds()
+        news = self.News(mal_id)
+        news.embeds = await news.embeds()
+        forum = self.Forum(mal_id)
+        forum.embeds = await forum.embeds()
+        external_links = (await JikanAnimeExternal(mal_id))['data']
+
         # Making Buttons and Selections for the embed
         class View(discord.ui.View):
             def __init__(
                 self,
                 *,
-                timeout = 180,
+                timeout = 300,
                 include_button: bool = True,
                 include_select: bool = True):
 
@@ -252,6 +439,14 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                                 style = ButtonStyle.link,
                                 url = anime['streaming'][index]['url']))
 
+                    # External Links Button
+                    for dict in external_links:
+                        self.add_item(
+                            Button(
+                                label = dict['name'] if dict['name'] not in ('', None) else 'Site',
+                                style = ButtonStyle.link,
+                                url = dict['url']))
+
                 # Making Selection Menu for looking into different embeds
                 if include_select == True:
                     select = Select(
@@ -269,16 +464,43 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                                 emoji = '👦🏽',
                                 description = 'Characters in Anime'
                                 ),
+                            discord.SelectOption(
+                                label = 'Relations',
+                                emoji = '📺',
+                                description = 'Relations of Anime'
+                                ),
+                            discord.SelectOption(
+                                label = 'News',
+                                emoji = '📰',
+                                description = 'News of Anime'
+                                ),
+                            discord.SelectOption(
+                                label = 'Forum',
+                                emoji = '❓',
+                                description = 'Forum of Anime'
+                                ),
                             ]
                         )
 
                     # A callback function to catch user interactions with the selection menu
                     async def callback(interaction: discord.Interaction):
                         if interaction.data['values'][0] == 'Overview':
-                            await interaction.response.edit_message(embed = overview.embed)
-                            
+                            await interaction.response.edit_message(embeds = overview.embeds)
+
                         elif interaction.data['values'][0] == 'Characters':
-                            await interaction.response.edit_message(embed = characters.embed)
+                            await interaction.response.edit_message(embeds = characters.embeds)
+
+                        elif interaction.data['values'][0] == 'Relations':
+                            await interaction.response.edit_message(embeds = relations.embeds)
+
+                        elif interaction.data['values'][0] == 'News':
+                            await interaction.response.edit_message(embeds = news.embeds)
+
+                        elif interaction.data['values'][0] == 'Forum':
+                            await interaction.response.edit_message(embeds = forum.embeds)
+
+                        else:
+                            await interaction.response.defer()
 
                     select.callback = callback
                     self.add_item(select)
@@ -286,16 +508,19 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
 
         # Finalize the embeds and send them
         view = View()
-        message = await context.send(embed = overview.embed, view = view)
-        
-        # Wait for user interactions for a timeout of 60 seconds
+        message = await context.send(embeds = overview.embeds, view = view)
+
+        # Wait for user interactions for a timeout of 300 seconds
         await view.wait()
         # Delete the selection menu after the timeout, and keep the embed
         await message.edit(
-            view = View(include_select = False))
-        
+            view = View(
+                include_select = False))
+
         return
 
 
+
 async def setup(bot):
-    await bot.add_cog(Anime(bot))
+    await bot.add_cog(
+        Anime(bot))
