@@ -13,7 +13,7 @@ import discord
 from .constants import *
 from .utils import get_logger
 
-async def main():
+def main():
 
     logger = get_logger()
 
@@ -23,13 +23,11 @@ async def main():
     if not os.path.isfile(DIR_PATH + '/config.json'):
         with open(DIR_PATH + '/config.json', 'w+') as file:
             json.dump(DEFAULT_CONFIG, file, indent = 4, sort_keys = False)
-
         sys.exit(f'config.json not found. A default one has been created under the following path:\n{DIR_PATH}/config.json\nPlease fill out the config.json file before running the bot')
 
     else:
         with open(DIR_PATH + '/config.json') as file:
             config = json.load(file)
-
 
     def get_prefix(bot, message):
         total = []
@@ -134,7 +132,7 @@ async def main():
                     await context.send(f'❌ Failed to load extension: {extension}\n{exception}')
 
 
-    await load_cogs()
-    await bot.start(
+    asyncio.run(load_cogs())
+    bot.run(
         config['token'],
         reconnect = True)
