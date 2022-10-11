@@ -1,12 +1,13 @@
 
 import asyncio
-import time
 
 from discord.enums import ButtonStyle
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ui import Button, Select, View
 import discord
+
+from datetime import datetime, timezone
 
 from .constants import *
 from .requests_ import *
@@ -36,20 +37,53 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
             )
 
             embed.set_thumbnail(url = self.response['images']['jpg']['large_image_url'])
-            embed.add_field(name = 'Score',      value = f"{self.response['score']} ⭐", inline = True)
-            embed.add_field(name = 'Rank',       value = f"No. {self.response['rank']:,} ⬆️", inline = True)
-            embed.add_field(name = 'Popularity', value = f"No. {self.response['popularity']:,} ⬆️", inline = True)
-            embed.add_field(name = 'Members',    value = f"{self.response['members']:,} 👦🏽", inline = True)
-            embed.add_field(name = 'Favorites',  value = f"{self.response['favorites']:,} ❤️", inline = True)
-            embed.add_field(name = 'Type',       value = f"{self.response['type']} 📺", inline = True)
-            embed.add_field(name = 'Status',     value = f"{self.response['status']} 🟩", inline = True)
-            embed.add_field(name = 'Episodes',   value = f"{self.response['episodes']:,} 🟦", inline = True)
-            embed.add_field(name = 'Source',     value = f"{self.response['source']} 🟨", inline = True)
-            embed.add_field(name = 'Aired',      value = f"{self.response['aired']['string']} 🟪", inline = True)
-            embed.add_field(name = 'Season',     value = f"{self.response['season']} 🍂", inline = True)
+            embed.add_field(name = 'Score',
+                            value = f"{self.response['score'] if isinstance(self.response['score'], float) else 'N/A'} ⭐",
+                            inline = True)
+
+            embed.add_field(name = 'Rank',
+                            value = f"No. {format(self.response['rank'], ',d') if isinstance(self.response['rank'], int) else 'N/A'} ⬆️",
+                            inline = True)
+
+            embed.add_field(name = 'Popularity',
+                            value = f"No. {format(self.response['popularity'], ',d') if isinstance(self.response['popularity'], int) else 'N/A'} ⬆️",
+                            inline = True)
+
+            embed.add_field(name = 'Members',
+                            value = f"{format(self.response['members'], ',d') if isinstance(self.response['members'], int) else 'N/A'} 👦🏽",
+                            inline = True)
+
+            embed.add_field(name = 'Favorites',
+                            value = f"{format(self.response['favorites'], ',d') if isinstance(self.response['favorites'], int) else 'N/A'} ❤️",
+                            inline = True)
+
+            embed.add_field(name = 'Type',
+                            value = f"{self.response['type'] if self.response['type'] != None else 'N/A'} 📺",
+                            inline = True)
+
+            embed.add_field(name = 'Status',
+                            value = f"{self.response['status'] if self.response['status'] != None else 'N/A'} 🟩",
+                            inline = True)
+
+            embed.add_field(name = 'Episodes',
+                            value = f"{format(self.response['episodes'], ',d') if isinstance(self.response['episodes'], int) else 'N/A'} 🟦",
+                            inline = True)
+
+            embed.add_field(name = 'Source',
+                            value = f"{self.response['source'] if self.response['source'] != None else 'N/A'} 🟨",
+                            inline = True)
+
+            embed.add_field(name = 'Aired',
+                            value = f"{self.response['aired']['string'] if self.response['aired']['string'] != None else 'N/A'} 🟪",
+                            inline = True)
+
+            embed.add_field(name = 'Season',
+                            value = f"{self.response['season'] if self.response['season'] != None else 'N/A'} 🍂",
+                            inline = True)
 
             if self.response['airing'] == True:
-                embed.add_field(name = 'Broadcast', value = f"{self.response['broadcast']['string']} 🆕", inline = True)
+                embed.add_field(name = 'Broadcast', value = f"{self.response['broadcast']['string']} 🆕",
+                inline = True)
 
             return [embed]
 
@@ -90,14 +124,14 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                         voice_actor = voice_actor['person']['name']
                         break
 
-                else: voice_actor = 'Unknown'
+                else: voice_actor = 'N/A'
 
 
                 if dict['role'] == 'Main':
                     if len(embeds) < 9:
                         mc_embed = discord.Embed(
                             title = f"{dict['character']['name']}",
-                            description = f"Liked: {dict['favorites']:,}\n{voice_actor}",
+                            description = f"Liked: {format(dict['favorites'], ',d') if isinstance(dict['favorites'], int) else 'N/A'}\n{voice_actor}",
                             url = dict['character']['url'],
                             color = 0xf37a12
                         )
@@ -111,7 +145,7 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                     else:
                         sc_embed.add_field(
                         name = f"{dict['character']['name']} (Main)",
-                        value = f"Liked: {dict['favorites']:,}\n{voice_actor}",
+                        value = f"Liked: {format(dict['favorites'], ',d') if isinstance(dict['favorites'], int) else 'N/A'}\n{voice_actor}",
                         inline = True)
 
                         continue
@@ -119,7 +153,7 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                 if dict['role'] == 'Supporting':
                     sc_embed.add_field(
                         name = f"{dict['character']['name']}",
-                        value = f"Liked: {dict['favorites']:,}\n{voice_actor}",
+                        value = f"Liked: {format(dict['favorites'], ',d') if isinstance(dict['favorites'], int) else 'N/A'}\n{voice_actor}",
                         inline = True)
 
                     continue
@@ -229,6 +263,14 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
             for i, dict in enumerate(self.response):
                 if i == 10: break
 
+                publish_date = datetime.fromisoformat(
+                    dict['date']
+                    ).astimezone(
+                        timezone.utc
+                        ).strftime(
+                            '%Y-%m-%d %H:%M:%S')
+
+
                 embed = discord.Embed(
                     title = f"**{dict['title']}**",
                     description = f"{dict['excerpt']}",
@@ -236,7 +278,7 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                     color = 0xf37a12
                 )
                 embed.set_image(url = dict['images']['jpg']['image_url'])
-                embed.set_footer(text = f"Published on {dict['date']}")
+                embed.set_footer(text = f"Published on {publish_date} (UTC)")
                 embeds.append(embed)
 
             return embeds
@@ -268,13 +310,20 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
             for i, dict in enumerate(self.response):
                 if i == 10: break
 
+                publish_date = datetime.fromisoformat(
+                    dict['date']
+                    ).astimezone(
+                        timezone.utc
+                        ).strftime(
+                            '%Y-%m-%d %H:%M:%S')
+
                 embed = discord.Embed(
                     title = f"**{dict['title']}**",
-                    description = f"Author: {dict['author_username']}\nComments: {dict['comments']:,}",
+                    description = f"Author: {dict['author_username']}\nComments: {format(dict['comments'], ',d') if isinstance(dict['comments'], int) else 'N/A'}",
                     url = dict['url'],
                     color = 0xf37a12
                 )
-                embed.set_footer(text = f"Published on {dict['date']}")
+                embed.set_footer(text = f"Published on {publish_date} (UTC)")
                 embeds.append(embed)
 
             return embeds
@@ -304,7 +353,7 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
         """
 
         # Send a request to REST API to retrieve similar animes based on the anime name
-        response = await AnimeSearch(query = name)
+        response = await AnimeSearch(query = name, limit = 25)
 
         # If the response is empty, then return
         if len(response['data']) == 0:
@@ -315,107 +364,82 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
             return
 
         # If the there are more than 1 results, then send a select menu
-        page = 0
+        elif len(response['data']) > 1:
 
-        while len(response['data']) > 1:
-
-            # Create pages
             embed = discord.Embed(
                 title = '**MyAnimeList**',
-                description = f'{context.author.mention} Here are all similar animes based on your request:\n> **` {name} `**',
+                description = f"{context.author.mention}\n**🎉 Hooray, we received several entries that were similar to your request**\n**👉🏽` {name} `👈🏽**\n\n**Please choose one of the anime listed below 😚\nSurely, the anime you're looking for is on the list uwu~ 😶‍🌫️**",
                 url = f'https://myanimelist.net/search/all?q={name.replace(" ", "%20")}&cat=all')
 
             embed.set_thumbnail(url = 'https://upload.wikimedia.org/wikipedia/commons/7/7a/MyAnimeList_Logo.png')
-            embed.set_footer(text = f'Page {page + 1} of {len(response["data"]) // 4 + 1}')
+            if response['data'][0]['images']['jpg']['small_image_url'] != None:
+                embed.set_image(url = response['data'][0]['images']['jpg']['small_image_url'])
 
-            # 4 animes per page
-            try:
-                for index, emoji in enumerate(['1️⃣', '2️⃣', '3️⃣', '4️⃣']):
-                    j = response['data'][index + page * 4]
+            embed.set_footer(icon_url = context.author.avatar.url, text = f'Have a nice day !! 😚')
 
-                    embed.add_field(
-                        name = f'{emoji} {j["title"]}',
-                        value = f"*{j['type']} ({str(j['episodes'])} eps)*\n*Scored {str(j['score'])}*\n*{str(j['members'])} members*",
-                        inline = False)
+            # Making Buttons and Selections
+            class View(discord.ui.View):
+                def __init__(
+                    self,
+                    timeout = 300
+                    ):
 
-            except IndexError:
-                pass
+                    super().__init__(timeout = timeout)
+                    self.choice = None
 
-            # If the message is already sent, then edit it
-            try:
-                message = await message.edit(embed = embed)
+                    select_options = []
+                    for index, dict in enumerate(response['data']):
+                        select_options.append(
+                            discord.SelectOption(
+                                label = dict['title'],
+                                value = str(index),
+                                description = f"<{dict['type']} ({format(dict['episodes'], ',d') if isinstance(dict['episodes'], int) else 'N/A'} eps)> <Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'}> <{format(dict['members'], ',d') if isinstance(dict['members'], int) else 'N/A'} members>",
+                                emoji = '📺' if dict['type'] == 'TV' else '🎞️' if dict['type'] == 'Movie' else '📼' if dict['type'] in ('OVA', 'ONA') else '🎵' if dict['type'] == 'Music' else '📺'))
 
-            # First time sending the message, with adding the reactions
-            except UnboundLocalError:
-                message = await context.send(embed = embed)
+                    select = discord.ui.Select(
+                        placeholder = 'Select an anime',
+                        options = select_options,
+                        min_values = 1,
+                        max_values = 1)
 
-                for i in range(4 if len(response['data']) > 4 else len(response['data'])):
-                    emoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣']
-                    await message.add_reaction(emoji[i])
+                    async def callback(interaction: discord.Interaction):
+                        await interaction.response.defer()
+                        self.choice = int(interaction.data['values'][0])
+                        self.stop()
 
-                if len(response['data']) > 4:
-                    for emoji in ['◀️', '▶️']:
-                        await message.add_reaction(emoji)
+                    select.callback = callback
+                    self.add_item(select)
 
-            # Wait for a reaction
-            try:
-                reaction, user = await self.bot.wait_for(
-                    'reaction_add',
-                    check = lambda reaction, user: reaction.message == message and str(reaction.emoji) in ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '◀️', '▶️'],
-                    timeout = 180)
+            # Send the menu
+            view = View()
+            message = await context.send(embed = embed, view = view)
+            # Wait for the user to select an anime
+            await view.wait()
 
-            except asyncio.TimeoutError:
+            # If the user didn't select an anime, then return
+            if view.choice == None:
                 await message.delete()
                 return
 
-            # Go to previous page, if first page, then go to last page
-            if str(reaction.emoji) == '◀️':
-                if page == 0:
-                    page = len(response['data']) // 4
-                else:
-                    page -= 1
+            # If the user selected an anime, then update the response
+            await message.delete()
+            mal_id = response['data'][view.choice]['mal_id']
 
-            # Go forward a page, if last page, then go to first page
-            elif str(reaction.emoji) == '▶️':
-                if page == len(response['data']) // 4:
-                    page = 0
-                else:
-                    page += 1
-
-            # Retrieve the anime id based on selected number
-            else:
-                for index, emoji in enumerate(['1️⃣', '2️⃣', '3️⃣', '4️⃣']):
-                    if str(reaction.emoji) != emoji:
-                        continue
-
-                    mal_id = response['data'][index + page * 4]['mal_id']
-                    await message.delete()
-                    break
-
-                break
 
         # If previously the response only has 1 result, then will skip the select menu, and directly go to the anime page
-        if len(response['data']) == 1:
+        elif len(response['data']) == 1:
             mal_id = response['data'][0]['mal_id']
 
         # Initialize Variables
-        start_time = time.time()
+        message = await context.send(
+            embed = discord.Embed(
+                title = 'Waiting for MyAnimeList response ...',
+                color = 0xf37a12))
+
         overview = self.Overview(mal_id)
         overview.embeds = await overview.embeds()
         overview.json = await overview.json()
-        characters = self.Characters(mal_id)
-        characters.embeds = await characters.embeds()
-        relations = self.Relations(mal_id)
-        relations.embeds = await relations.embeds()
-        news = self.News(mal_id)
-        news.embeds = await news.embeds()
-        forum = self.Forum(mal_id)
-        forum.embeds = await forum.embeds()
         external_links = (await JikanAnimeExternal(mal_id))['data']
-
-        # Show time taken of retrieving data from API inside footer
-        overview.embeds[0].set_footer(
-            text = f"(Time taken: {round(time.time() - start_time, 2)} seconds)")
 
         # Making Buttons and Selections for the embed
         class View(discord.ui.View):
@@ -427,6 +451,10 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                 include_select: bool = True):
 
                 super().__init__(timeout = timeout)
+                self.characters = None
+                self.relations = None
+                self.news = None
+                self.forum = None
 
                 # Making URL buttons redirecting to trailer and streaming sites
                 if include_button == True:
@@ -494,19 +522,40 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
                     # A callback function to catch user interactions with the selection menu
                     async def callback(interaction: discord.Interaction):
                         if interaction.data['values'][0] == 'Overview':
-                            await interaction.response.edit_message(embeds = overview.embeds)
+                            await interaction.response.defer()
+                            await interaction.followup.edit_message(message_id = message.id, embeds = overview.embeds)
 
                         elif interaction.data['values'][0] == 'Characters':
-                            await interaction.response.edit_message(embeds = characters.embeds)
+                            if self.characters == None:
+                                self.characters = Anime.Characters(mal_id)
+                                self.characters.embeds = await self.characters.embeds()
+
+                            await interaction.response.defer()
+                            await interaction.followup.edit_message(message_id = message.id, embeds = self.characters.embeds)
 
                         elif interaction.data['values'][0] == 'Relations':
-                            await interaction.response.edit_message(embeds = relations.embeds)
+                            if self.relations == None:
+                                self.relations = Anime.Relations(mal_id)
+                                self.relations.embeds = await self.relations.embeds()
+
+                            await interaction.response.defer()
+                            await interaction.followup.edit_message(message_id = message.id, embeds = self.relations.embeds)
 
                         elif interaction.data['values'][0] == 'News':
-                            await interaction.response.edit_message(embeds = news.embeds)
+                            if self.news == None:
+                                self.news = Anime.News(mal_id)
+                                self.news.embeds = await self.news.embeds()
+
+                            await interaction.response.defer()
+                            await interaction.followup.edit_message(message_id = message.id, embeds = self.news.embeds)
 
                         elif interaction.data['values'][0] == 'Forum':
-                            await interaction.response.edit_message(embeds = forum.embeds)
+                            if self.forum == None:
+                                self.forum = Anime.Forum(mal_id)
+                                self.forum.embeds = await self.forum.embeds()
+
+                            await interaction.response.defer()
+                            await interaction.followup.edit_message(message_id = message.id, embeds = self.forum.embeds)
 
                         else:
                             await interaction.response.defer()
@@ -517,7 +566,7 @@ class Anime(commands.Cog, name = 'MyAnimeList in Discord Now!'):
 
         # Finalize the embeds and send them
         view = View()
-        message = await context.send(embeds = overview.embeds, view = view)
+        await message.edit(embeds = overview.embeds, view = view)
 
         # Wait for user interactions for a timeout of 300 seconds
         await view.wait()
