@@ -5,3 +5,6 @@
   - Relations
   - News
   - Forum
+
+- (Optional) Set default search API to official API (MAL) to have better accuracy
+  - Get the client id from registering in https://myanimelist.net/apiconfig

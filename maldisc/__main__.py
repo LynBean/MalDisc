@@ -46,6 +46,7 @@ def main():
         description = 'MyAnimeList in Discord Now!',
         intents = intents,
         help_command = None)
+    bot.config = config
 
     @bot.event
     async def on_ready() -> None:
