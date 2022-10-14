@@ -32,30 +32,21 @@ class Anime(commands.Cog):
 
         if requester == Jikan.Anime.Search:
             for dict in response['data']:
-                id = dict['id']
-                title = dict['title']
-                picture = dict['images']['jpg']['image_url']
-                score = dict['score']
-                rank = dict['rank']
-                media_type = dict['type']
-                num_episodes = dict['episodes']
-                num_list_users = dict['members']
-
                 result.append({
-                    'id': id,
-                    'title': title,
-                    'picture': picture,
-                    'score': score,
-                    'rank': rank,
-                    'media_type': media_type,
-                    'num_episodes': num_episodes,
-                    'num_list_users': num_list_users})
+                    'id': dict['id'],
+                    'title': dict['title'],
+                    'picture': dict['images']['jpg']['image_url'],
+                    'score': dict['score'],
+                    'rank': dict['rank'],
+                    'media_type': dict['type'],
+                    'episodes': dict['episodes'],
+                    'members': dict['members']})
+
+                continue
 
         elif requester == MyAnimeList.Anime.Search:
             for dict in response['data']:
                 dict = dict['node']
-                id = dict['id']
-                title = dict['title']
                 try: picture = dict['main_picture']['medium']
                 except KeyError: picture = None
                 try: score = dict['mean']
@@ -70,8 +61,8 @@ class Anime(commands.Cog):
                 except KeyError: members = None
 
                 result.append({
-                    'id': id,
-                    'title': title,
+                    'id': dict['id'],
+                    'title': dict['title'],
                     'picture': picture,
                     'score': score,
                     'rank': rank,
