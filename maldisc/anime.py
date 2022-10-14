@@ -296,10 +296,11 @@ class Anime(commands.Cog):
         async def buildCharacters(self) -> None:
             data = await self.arrangeCharacters()
             if data == None:
-                return [discord.Embed(
+                self.builtCharacters = [discord.Embed(
                     title = 'No Characters Found',
                     color = discord.Color.red()
                 )]
+                return
 
             embeds = []
             main, supporting = data
@@ -341,10 +342,11 @@ class Anime(commands.Cog):
             await self.getRelations()
             data = self.relations
             if len(data) == 0:
-                return [discord.Embed(
+                self.builtRelations = [discord.Embed(
                     title = 'No Relations Found',
                     color = discord.Color.red()
                 )]
+                return
 
             embeds = []
             for relation in data:
@@ -366,10 +368,11 @@ class Anime(commands.Cog):
         async def buildNews(self) -> None:
             data = await self.arrangeNews()
             if data == None:
-                return [discord.Embed(
+                self.builtNews = [discord.Embed(
                     title = 'No News Found',
                     color = discord.Color.red()
                 )]
+                return
 
             embeds = []
             for i, entry in enumerate(data):
@@ -390,10 +393,11 @@ class Anime(commands.Cog):
         async def buildForum(self) -> None:
             data = await self.arrangeForum()
             if data == None:
-                return [discord.Embed(
+                self.builtForum = [discord.Embed(
                     title = 'No Forum Found',
                     color = discord.Color.red()
                 )]
+                return
 
             embeds = []
             for i, thread in enumerate(data):
@@ -409,10 +413,6 @@ class Anime(commands.Cog):
 
             self.builtForum = embeds
             return
-
-
-
-
 
 
     @commands.hybrid_command(
