@@ -1,5 +1,4 @@
 aiohttp
 asyncio
-authlib
 discord
 platformdirs

@@ -16,59 +16,43 @@ class Anime(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.overview = None
-        self.characters = None
-        self.characters_id = None
-        self.relations = None
-        self.relations_id = None
-        self.news = None
-        self.news_id = None
-        self.forum = None
-        self.forum_id = None
 
     async def Search(self, query: str) -> list:
-        Api = JikanAnime.Search if self.bot.config['mal_config']['enabled'] != True else MalAnime.Search
-
-        response = await Api(
+        requester = Jikan.Anime.Search if self.bot.config['mal_config']['enabled'] != True else MyAnimeList.Anime.Search
+        response = await requester(
             query = query,
             limit = 25,
+            order_by = 'score',
+            sort = 'desc',
             fields = 'id,title,main_picture,mean,rank,media_type,num_episodes,num_list_users',
+            sfw = False,
             nsfw = True)
-
-        response = response['data']
 
         result = []
 
-        if Api == JikanAnime.Search:
-            for dict in response:
+        if requester == Jikan.Anime.Search:
+            for dict in response['data']:
                 id = dict['id']
                 title = dict['title']
-                try: picture = dict['images']['jpg']['image_url']
-                except KeyError: picture = None
-                try: score = dict['score']
-                except KeyError: score = None
-                try: rank = dict['rank']
-                except KeyError: rank = None
-                try: media_type = dict['type']
-                except KeyError: media_type = None
-                try: num_episodes = dict['episodes']
-                except KeyError: num_episodes = None
-                try: num_list_users = dict['members']
-                except KeyError: num_list_users = None
+                picture = dict['images']['jpg']['image_url']
+                score = dict['score']
+                rank = dict['rank']
+                media_type = dict['type']
+                num_episodes = dict['episodes']
+                num_list_users = dict['members']
 
-                result.append(
-                    {
-                        'id': id,
-                        'title': title,
-                        'picture': picture,
-                        'score': score,
-                        'rank': rank,
-                        'media_type': media_type,
-                        'num_episodes': num_episodes,
-                        'num_list_users': num_list_users})
+                result.append({
+                    'id': id,
+                    'title': title,
+                    'picture': picture,
+                    'score': score,
+                    'rank': rank,
+                    'media_type': media_type,
+                    'num_episodes': num_episodes,
+                    'num_list_users': num_list_users})
 
-        elif Api == MalAnime.Search:
-            for dict in response:
+        elif requester == MyAnimeList.Anime.Search:
+            for dict in response['data']:
                 dict = dict['node']
                 id = dict['id']
                 title = dict['title']
@@ -80,25 +64,355 @@ class Anime(commands.Cog):
                 except KeyError: rank = None
                 try: media_type = dict['media_type']
                 except KeyError: media_type = None
-                try: num_episodes = dict['num_episodes']
-                except KeyError: num_episodes = None
-                try: num_list_users = dict['num_list_users']
-                except KeyError: num_list_users = None
+                try: episodes = dict['num_episodes']
+                except KeyError: episodes = None
+                try: members = dict['num_list_users']
+                except KeyError: members = None
 
-                result.append(
-                    {
-                        'id': id,
-                        'title': title,
-                        'picture': picture,
-                        'score': score,
-                        'rank': rank,
-                        'media_type': media_type,
-                        'num_episodes': num_episodes,
-                        'num_list_users': num_list_users})
+                result.append({
+                    'id': id,
+                    'title': title,
+                    'picture': picture,
+                    'score': score,
+                    'rank': rank,
+                    'media_type': media_type,
+                    'episodes': episodes,
+                    'members': members})
 
                 continue
 
         return result
+
+    class AnimeDetails:
+        def __init__(self, id: int):
+            self.id = id
+            self.full = None
+            self.builtOverview = None
+            self.characters = None
+            self.builtCharacters = None
+            self.relations = None
+            self.builtRelations = None
+            self.news = None
+            self.builtNews = None
+            self.forum = None
+            self.builtForum = None
+
+        async def getFull(self) -> None:
+            if self.full != None: return
+            self.full = await Jikan.Anime.Full(id = self.id)
+
+        async def getCharacters(self) -> None:
+            if self.characters != None: return
+            self.characters = await Jikan.Anime.Characters(id = self.id)
+
+        async def getRelations(self) -> None:
+            if self.relations != None: return
+            self.relations = (await self.arrangeFull())['relations']
+
+        async def getNews(self) -> None:
+            if self.news != None: return
+            self.news = await Jikan.Anime.News(id = self.id)
+
+        async def getForum(self) -> None:
+            if self.forum != None: return
+            self.forum = await Jikan.Anime.Forum(id = self.id)
+
+        async def arrangeFull(self) -> dict:
+            await self.getFull()
+            data = self.full['data']
+            return {
+                'id': data['mal_id'], 'url': data['url'], 'image': data['images']['jpg']['image_url'],
+                'small_image': data['images']['jpg']['small_image_url'], 'trailer': data['trailer']['url'],
+                'title': data['title'], 'title_english': data['title_english'], 'title_japanese': data['title_japanese'],
+                'media_type': data['type'], 'source': data['source'], 'episodes': data['episodes'],
+                'status': data['status'], 'airing': data['airing'], 'aired': data['aired']['string'],
+                'duration': data['duration'], 'rating': data['rating'], 'score': data['score'],
+                'scored_by': data['scored_by'], 'rank': data['rank'], 'popularity': data['popularity'],
+                'members': data['members'], 'favorites': data['favorites'], 'synopsis': data['synopsis'],
+                'background': data['background'], 'season': data['season'], 'year': data['year'],
+                'broadcast': data['broadcast']['string'], 'producers': [producer['name'] for producer in data['producers']],
+                'licensors': [licensor['name'] for licensor in data['licensors']], 'studios': [studio['name'] for studio in data['studios']],
+                'genres': [genre['name'] for genre in data['genres']], 'relations': data['relations'], 'opening_themes': data['theme']['openings'],
+                'ending_themes': data['theme']['endings'], 'external': data['external'], 'streaming': data['streaming']
+            }
+
+        async def arrangeCharacters(self) -> tuple:
+            await self.getCharacters()
+            data = self.characters['data']
+            if len(data) == 0: return None
+
+            main = []
+            supporting = []
+            for character in data:
+                for person in character['voice_actors']:
+                    if person['language'] != 'Japanese': continue
+                    voice_actor = person['person']['name']
+                    break
+                else: voice_actor = 'N/A'
+
+                group = main if character['role'] == 'Main' else supporting
+                group.append({
+                    'id': character['character']['mal_id'], 'url': character['character']['url'],
+                    'image': character['character']['images']['jpg']['image_url'], 'name': character['character']['name'],
+                    'favorites': character['favorites'], 'voice_actor': voice_actor
+                })
+
+            return main, supporting
+
+        async def arrangeNews(self) -> list:
+            await self.getNews()
+            data = self.news['data']
+            if len(data) == 0: return None
+
+            result = []
+            for news in data:
+                date = datetime.fromisoformat(
+                    news['date']
+                    ).astimezone(
+                        timezone.utc
+                        ).strftime(
+                            '%Y-%m-%d %H:%M:%S')
+
+                result.append({
+                    'title': news['title'], 'url': news['url'], 'image': news['images']['jpg']['image_url'],
+                    'date': date, 'author': news['author_username'], 'forum_url': news['forum_url'],
+                    'comments': news['comments'], 'excerpt': news['excerpt']
+                })
+
+            return result
+
+        async def arrangeForum(self) -> list:
+            await self.getForum()
+            data = self.forum['data']
+            if len(data) == 0: return None
+
+            result = []
+            for thread in data:
+                date = datetime.fromisoformat(
+                    thread['date']
+                    ).astimezone(
+                        timezone.utc
+                        ).strftime(
+                            '%Y-%m-%d')
+
+                result.append({
+                    'title': thread['title'], 'url': thread['url'],
+                    'date': date, 'author': thread['author_username'],
+                    'comments': thread['comments']
+                })
+
+            return result
+
+        async def buildOverview(self) -> None:
+            data = await self.arrangeFull()
+            embed = discord.Embed(
+                title = data['title'],
+                url = data['url'],
+                description = data['synopsis'],
+                color = discord.Color.random())
+            embed.set_thumbnail(url = data['image'])
+            embed.set_footer(text = data['background'])
+            if isinstance(data['score'], float):
+                embed.add_field(
+                    name = 'Score',
+                    value = f"{data['score']:,.2f} ⭐",
+                    inline = True)
+            if isinstance(data['rank'], int):
+                embed.add_field(
+                    name = 'Rank',
+                    value = f"No. {data['rank']:,} ⬆️",
+                    inline = True)
+            if isinstance(data['popularity'], int):
+                embed.add_field(
+                    name = 'Popularity',
+                    value = f"No. {data['popularity']:,} ⬆️",
+                    inline = True)
+            if isinstance(data['members'], int):
+                embed.add_field(
+                    name = 'Members',
+                    value = f"{data['members']:,} 👥",
+                    inline = True)
+            if isinstance(data['favorites'], int):
+                embed.add_field(
+                    name = 'Favorites',
+                    value = f"{data['favorites']:,} ⭐",
+                    inline = True)
+            if data['media_type'] != None:
+                embed.add_field(
+                    name = 'Type',
+                    value = f"{data['media_type']} 📺",
+                    inline = True)
+            if len(data['genres']) > 0:
+                embed.add_field(
+                    name = 'Genres',
+                    value = ', '.join(data['genres']),
+                    inline = True)
+            if data['status'] != None:
+                embed.add_field(
+                    name = 'Status',
+                    value = f"{data['status']} 🟩",
+                    inline = True)
+            if isinstance(data['episodes'], int):
+                embed.add_field(
+                    name = 'Episodes',
+                    value = f"{data['episodes']:,} 🟦",
+                    inline = True)
+            if data['source'] != None:
+                embed.add_field(
+                    name = 'Source',
+                    value = f"{data['source']} 🟨",
+                    inline = True)
+            if len(data['studios']) > 0:
+                embed.add_field(
+                    name = 'Studios',
+                    value = ', '.join(data['studios']),
+                    inline = True)
+            if len(data['producers']) > 0:
+                embed.add_field(
+                    name = 'Producers',
+                    value = ', '.join(data['producers']),
+                    inline = True)
+            if len(data['licensors']) > 0:
+                embed.add_field(
+                    name = 'Licensors',
+                    value = ', '.join(data['licensors']),
+                    inline = True)
+            if data['aired'] != None:
+                embed.add_field(
+                    name = 'Aired',
+                    value = f"{data['aired']} 🟪",
+                    inline = True)
+            if data['season'] != None:
+                embed.add_field(name = 'Season',
+                value = f"{data['season']} 🍂",
+                inline = True)
+            if data['airing'] == True:
+                embed.add_field(name = 'Broadcast', value = f"{data['broadcast']} 🆕",
+                inline = True)
+
+            self.builtOverview = [embed]
+            return
+
+        async def buildCharacters(self) -> None:
+            data = await self.arrangeCharacters()
+            if data == None:
+                return [discord.Embed(
+                    title = 'No Characters Found',
+                    color = discord.Color.red()
+                )]
+
+            embeds = []
+            main, supporting = data
+
+            supporting_embed = discord.Embed(
+                title = 'Supporting Characters',
+                url = f'https://myanimelist.net/anime/{self.id}/characters',
+                color = discord.Color.random())
+
+            for character in main:
+                if len(embeds) < 9:
+                    embed = discord.Embed(
+                        title = character['name'],
+                        description = f"Liked: {format(character['favorites'], ',d') if isinstance(character['favorites'], int) else 'N/A'}\n{character['voice_actor']}",
+                        url = character['url'],
+                        color = discord.Color.random())
+                    embed.set_thumbnail(url = character['image']) if character['image'] != None else None
+                    embeds.append(embed)
+                    continue
+
+                else:
+                    supporting_embed.add_field(
+                        name = f"{character['name']} (Main)",
+                        value = f"Liked: {format(character['favorites'], ',d') if isinstance(character['favorites'], int) else 'N/A'}\n{character['voice_actor']}",
+                        inline = True)
+                    continue
+
+            for character in supporting:
+                supporting_embed.add_field(
+                    name = f"{character['name']}",
+                    value = f"Liked: {format(character['favorites'], ',d') if isinstance(character['favorites'], int) else 'N/A'}\n{character['voice_actor']}",
+                    inline = True)
+
+            embeds.append(supporting_embed) if len(supporting_embed.fields) > 0 else None
+            self.builtCharacters = embeds
+            return
+
+        async def buildRelations(self) -> None:
+            await self.getRelations()
+            data = self.relations
+            if len(data) == 0:
+                return [discord.Embed(
+                    title = 'No Relations Found',
+                    color = discord.Color.red()
+                )]
+
+            embeds = []
+            for relation in data:
+                embed = discord.Embed(
+                    title = relation['relation'],
+                    color = discord.Color.random())
+
+                for entry in relation['entry']:
+                    embed.add_field(
+                        name = f"{entry['name']} ({entry['type']})",
+                        value = entry['url'])
+
+                embeds.append(embed)
+                continue
+
+            self.builtRelations = embeds
+            return
+
+        async def buildNews(self) -> None:
+            data = await self.arrangeNews()
+            if data == None:
+                return [discord.Embed(
+                    title = 'No News Found',
+                    color = discord.Color.red()
+                )]
+
+            embeds = []
+            for i, entry in enumerate(data):
+                if i == 10: break
+
+                embed = discord.Embed(
+                    title = entry['title'],
+                    url = entry['url'],
+                    color = discord.Color.random())
+                embed.set_author(name = entry['author'])
+                embed.set_thumbnail(url = entry['image'])
+                embed.set_footer(text = f"Published on {entry['date']}")
+                embeds.append(embed)
+
+            self.builtNews = embeds
+            return
+
+        async def buildForum(self) -> None:
+            data = await self.arrangeForum()
+            if data == None:
+                return [discord.Embed(
+                    title = 'No Forum Found',
+                    color = discord.Color.red()
+                )]
+
+            embeds = []
+            for i, thread in enumerate(data):
+                if i == 10: break
+
+                embed = discord.Embed(
+                    title = thread['title'],
+                    url = thread['url'],
+                    color = discord.Color.random())
+                embed.set_author(name = thread['author'])
+                embed.set_footer(text = f"Published on {thread['date']}")
+                embeds.append(embed)
+
+            self.builtForum = embeds
+            return
+
+
+
+
 
 
     @commands.hybrid_command(
@@ -130,9 +444,9 @@ class Anime(commands.Cog):
 
             embed.set_thumbnail(url = 'https://upload.wikimedia.org/wikipedia/commons/7/7a/MyAnimeList_Logo.png')
 
-            for i in range(len(result)):
-                if result[i]['picture'] == None: continue
-                embed.set_image(url = result[i]['picture'])
+            for data in result:
+                if data['picture'] == None: continue
+                embed.set_image(url = data['picture'])
                 break
 
             embed.set_footer(icon_url = context.author.avatar.url, text = f'Have a nice day !! 😚')
@@ -153,7 +467,7 @@ class Anime(commands.Cog):
                             discord.SelectOption(
                                 label = dict['title'],
                                 value = str(index),
-                                description = f"{dict['media_type']} ({format(dict['num_episodes'], ',d') if isinstance(dict['num_episodes'], int) else 'N/A'} eps) Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'} {format(dict['num_list_users'], ',d') if isinstance(dict['num_list_users'], int) else 'N/A'} members",
+                                description = f"{dict['media_type']} ({format(dict['episodes'], ',d') if isinstance(dict['episodes'], int) else 'N/A'} eps) Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'} {format(dict['members'], ',d') if isinstance(dict['members'], int) else 'N/A'} members",
                                 emoji = '📺' if dict['media_type'].upper() == 'TV' else '🎞️' if dict['media_type'].upper() == 'MOVIE' else '📼' if dict['media_type'].upper() in ('OVA', 'ONA', 'SPECIAL') else '🎵' if dict['media_type'].upper() == 'Music' else '📺'))
 
                     select = discord.ui.Select(
@@ -190,222 +504,20 @@ class Anime(commands.Cog):
             id = result[0]['id']
 
         # Initialize Variables
-        async def overview_embeds(response: dict) -> [discord.Embed]:
-            embed = discord.Embed(
-                title = response['title'],
-                url = response['url'],
-                description = response['synopsis'],
-                color = 0xf37a12
-            )
-
-            embed.set_thumbnail(url = response['images']['jpg']['large_image_url'])
-            embed.add_field(name = 'Score',
-                            value = f"{response['score'] if isinstance(response['score'], float) else 'N/A'} ⭐",
-                            inline = True)
-
-            embed.add_field(name = 'Rank',
-                            value = f"No. {format(response['rank'], ',d') if isinstance(response['rank'], int) else 'N/A'} ⬆️",
-                            inline = True)
-
-            embed.add_field(name = 'Popularity',
-                            value = f"No. {format(response['popularity'], ',d') if isinstance(response['popularity'], int) else 'N/A'} ⬆️",
-                            inline = True)
-
-            embed.add_field(name = 'Members',
-                            value = f"{format(response['members'], ',d') if isinstance(response['members'], int) else 'N/A'} 👦🏽",
-                            inline = True)
-
-            embed.add_field(name = 'Favorites',
-                            value = f"{format(response['favorites'], ',d') if isinstance(response['favorites'], int) else 'N/A'} ❤️",
-                            inline = True)
-
-            embed.add_field(name = 'Type',
-                            value = f"{response['type'] if response['type'] != None else 'N/A'} 📺",
-                            inline = True)
-
-            embed.add_field(name = 'Status',
-                            value = f"{response['status'] if response['status'] != None else 'N/A'} 🟩",
-                            inline = True)
-
-            embed.add_field(name = 'Episodes',
-                            value = f"{format(response['episodes'], ',d') if isinstance(response['episodes'], int) else 'N/A'} 🟦",
-                            inline = True)
-
-            embed.add_field(name = 'Source',
-                            value = f"{response['source'] if response['source'] != None else 'N/A'} 🟨",
-                            inline = True)
-
-            embed.add_field(name = 'Aired',
-                            value = f"{response['aired']['string'] if response['aired']['string'] != None else 'N/A'} 🟪",
-                            inline = True)
-
-            embed.add_field(name = 'Season',
-                            value = f"{response['season'] if response['season'] != None else 'N/A'} 🍂",
-                            inline = True)
-
-            if response['airing'] == True:
-                embed.add_field(name = 'Broadcast', value = f"{response['broadcast']['string']} 🆕",
-                inline = True)
-
-            return [embed]
-
-        async def characters_embeds(response: dict) -> [discord.Embed]:
-            if len(response) == 0:
-                embed = discord.Embed(
-                    title = 'No characters found',
-                    color = 0xf37a12)
-                return [embed]
-
-            embeds = []
-            sc_embed = discord.Embed(
-                title = f"**Supporting Characters**",
-                color = 0xf37a12
-            )
-
-            # Splitting the main characters and the supporting characters into different embeds
-            for dict in response:
-
-                for voice_actor in dict['voice_actors']:
-                    if voice_actor['language'] == 'Japanese':
-                        voice_actor = voice_actor['person']['name']
-                        break
-
-                else: voice_actor = 'N/A'
-
-
-                if dict['role'] == 'Main':
-                    if len(embeds) < 9:
-                        mc_embed = discord.Embed(
-                            title = f"{dict['character']['name']}",
-                            description = f"Liked: {format(dict['favorites'], ',d') if isinstance(dict['favorites'], int) else 'N/A'}\n{voice_actor}",
-                            url = dict['character']['url'],
-                            color = 0xf37a12
-                        )
-
-                        if dict['character']['images']['jpg']['image_url'] != None:
-                            mc_embed.set_image(url = dict['character']['images']['jpg']['image_url'])
-
-                        embeds.append(mc_embed)
-                        continue
-
-                    else:
-                        sc_embed.add_field(
-                        name = f"{dict['character']['name']} (Main)",
-                        value = f"Liked: {format(dict['favorites'], ',d') if isinstance(dict['favorites'], int) else 'N/A'}\n{voice_actor}",
-                        inline = True)
-
-                        continue
-
-                if dict['role'] == 'Supporting':
-                    sc_embed.add_field(
-                        name = f"{dict['character']['name']}",
-                        value = f"Liked: {format(dict['favorites'], ',d') if isinstance(dict['favorites'], int) else 'N/A'}\n{voice_actor}",
-                        inline = True)
-
-                    continue
-
-            if len(sc_embed.fields) != 0: embeds.append(sc_embed)
-            return embeds
-
-        async def relations_embeds(response: dict) -> [discord.Embed]:
-            if len(response) == 0:
-                embed = discord.Embed(
-                    title = 'No Relations found',
-                    color = 0xf37a12)
-                return [embed]
-
-            embed = discord.Embed(
-                title = 'Relations',
-                color = 0xf37a12
-            )
-
-            for dict in response:
-
-                for i in range(len(dict['entry'])):
-                    embed.add_field(
-                        name = f"**{dict['relation']} ({dict['entry'][i]['type']})**",
-                        value = f"{dict['entry'][i]['name']}\n{dict['entry'][i]['url']}",
-                        inline = True)
-
-            return [embed]
-
-        async def news_embeds(response: dict) -> [discord.Embed]:
-            if len(response) == 0:
-                embed = discord.Embed(
-                    title = 'No News found',
-                    color = 0xf37a12)
-                return [embed]
-
-            embeds = []
-            # Maximum embeds in a message is 10, so only can show up to 10 news
-            for i, dict in enumerate(response):
-                if i == 10: break
-
-                publish_date = datetime.fromisoformat(
-                    dict['date']
-                    ).astimezone(
-                        timezone.utc
-                        ).strftime(
-                            '%Y-%m-%d %H:%M:%S')
-
-
-                embed = discord.Embed(
-                    title = f"**{dict['title']}**",
-                    description = f"{dict['excerpt']}",
-                    url = dict['url'],
-                    color = 0xf37a12
-                )
-                embed.set_image(url = dict['images']['jpg']['image_url'])
-                embed.set_footer(text = f"Published on {publish_date} (UTC)")
-                embeds.append(embed)
-
-            return embeds
-
-        async def forum_embeds(response: dict) -> [discord.Embed]:
-            if len(response) == 0:
-                embed = discord.Embed(
-                    title = 'No Forum found',
-                    color = 0xf37a12)
-                return [embed]
-
-            embeds = []
-            # Maximum embeds in a message is 10, so only can show up to 10 news
-            for i, dict in enumerate(response):
-                if i == 10: break
-
-                publish_date = datetime.fromisoformat(
-                    dict['date']
-                    ).astimezone(
-                        timezone.utc
-                        ).strftime(
-                            '%Y-%m-%d %H:%M:%S')
-
-                embed = discord.Embed(
-                    title = f"**{dict['title']}**",
-                    description = f"Author: {dict['author_username']}\nComments: {format(dict['comments'], ',d') if isinstance(dict['comments'], int) else 'N/A'}",
-                    url = dict['url'],
-                    color = 0xf37a12
-                )
-                embed.set_footer(text = f"Published on {publish_date} (UTC)")
-                embeds.append(embed)
-
-            return embeds
-
         message = await context.send(
             embed = discord.Embed(
                 title = 'Waiting for MyAnimeList response ...',
                 color = 0xf37a12))
 
-        self.overview = (await JikanAnime.Full(id = id))['data']
-        self.overview_embeds = await overview_embeds(self.overview)
-        external_links = (await JikanAnime.External(id = id))['data']
+        anime_details = self.AnimeDetails(id = id)
+        arranged_full = await anime_details.arrangeFull()
+        await anime_details.buildOverview()
 
         # Making Buttons and Selections for the embed
         class View(discord.ui.View):
             def __init__(
                 self,
                 *,
-                overview: dict,
                 timeout: int = 300,
                 include_button: bool = True,
                 include_select: bool = True
@@ -417,28 +529,28 @@ class Anime(commands.Cog):
                 if include_button == True:
 
                     # Trailer Button
-                    if overview['trailer']['url'] != None:
+                    if arranged_full['trailer'] != None:
                         self.add_item(
                             Button(
                                 label = 'Watch Trailer',
                                 style = ButtonStyle.link,
-                                url = overview['trailer']['url']))
+                                url = arranged_full['trailer']))
 
                     # Streaming Button
-                    for index in range(len(overview['streaming'])):
+                    for stream in arranged_full['streaming']:
                         self.add_item(
                             Button(
-                                label = overview['streaming'][index]['name'],
+                                label = stream['name'],
                                 style = ButtonStyle.link,
-                                url = overview['streaming'][index]['url']))
+                                url = stream['url']))
 
                     # External Links Button
-                    for dict in external_links:
+                    for link in arranged_full['external']:
                         self.add_item(
                             Button(
-                                label = dict['name'] if dict['name'] not in ('', None) else 'Site',
+                                label = link['name'] if link['name'] not in ('', None) else 'Site',
                                 style = ButtonStyle.link,
-                                url = dict['url']))
+                                url = link['url']))
 
                 # Making Selection Menu for looking into different embeds
                 if include_select == True:
@@ -483,59 +595,49 @@ class Anime(commands.Cog):
         async def callback(interaction: discord.Interaction):
             if interaction.data['values'][0] == 'Overview':
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = self.overview_embeds)
+                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtOverview)
 
             elif interaction.data['values'][0] == 'Characters':
-                if self.characters == None or self.characters_id != id:
-                    self.characters_id = id
-                    self.characters = (await JikanAnime.Characters(id = id))['data']
-                    self.characters_embeds = await characters_embeds(self.characters)
+                if anime_details.builtCharacters == None:
+                    await anime_details.buildCharacters()
 
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = self.characters_embeds)
+                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtCharacters)
 
             elif interaction.data['values'][0] == 'Relations':
-                if self.relations == None or self.relations_id != id:
-                    self.relations_id = id
-                    self.relations = (await JikanAnime.Relations(id = id))['data']
-                    self.relations_embeds = await relations_embeds(self.relations)
+                if anime_details.builtRelations == None:
+                    await anime_details.buildRelations()
 
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = self.relations_embeds)
+                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtRelations)
 
             elif interaction.data['values'][0] == 'News':
-                if self.news == None or self.news_id != id:
-                    self.news_id = id
-                    self.news = (await JikanAnime.News(id = id))['data']
-                    self.news_embeds = await news_embeds(self.news)
+                if anime_details.builtNews == None:
+                    await anime_details.buildNews()
 
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = self.news_embeds)
+                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtNews)
 
             elif interaction.data['values'][0] == 'Forum':
-                if self.forum == None or self.forum_id != id:
-                    self.forum_id = id
-                    self.forum = (await JikanAnime.Forum(id = id))['data']
-                    self.forum_embeds = await forum_embeds(self.forum)
+                if anime_details.builtForum == None:
+                    await anime_details.buildForum()
 
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = self.forum_embeds)
+                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtForum)
 
             else:
                 await interaction.response.defer()
 
         # Finalize the embeds and send them
-        view = View(overview = self.overview)
+        view = View()
         view.select.callback = callback
-        await message.edit(embeds = self.overview_embeds, view = view)
+        await message.edit(embeds = anime_details.builtOverview, view = view)
 
         # Wait for user interactions for a timeout of 300 seconds
         await view.wait()
         # Delete the selection menu after the timeout, and keep the embed
         await message.edit(
-            view = View(
-                overview = self.overview,
-                include_select = False))
+            view = View(include_select = False))
 
         return
 

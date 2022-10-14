@@ -37,12 +37,11 @@ setup(
     install_requires = [
         'aiohttp',
         'asyncio',
-        'authlib',
         'discord',
         'platformdirs',
         ],
     entry_points = {
-        'console_scripts': ['maldisc = maldisc.__main__:main'],
+        'console_scripts': ['maldisc = maldisc.__main__: main'],
     },
     classifiers = [
         'Programming Language :: Python :: 3.7',
