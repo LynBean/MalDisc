@@ -11,8 +11,7 @@ from discord.ext.commands import Bot, Context
 import discord
 
 from .constants import *
-from .__init__ import __version__ as maldisc_version
-from .utils import get_logger
+from .utils import get_logger, get_version
 
 def main():
 
@@ -51,7 +50,7 @@ def main():
     @bot.event
     async def on_ready() -> None:
         logger.info(f'Logged in as {bot.user.name} - {bot.user.id}')
-        logger.info(f'MalDisc version: {maldisc_version}')
+        logger.info(f'MalDisc version: {get_version()}')
         logger.info(f'Discord API version: {discord.__version__}')
         logger.info(f'Python version: {platform.python_version()}')
         logger.info(f'Running on: {platform.system()} {platform.release()} ({os.name})')
@@ -115,7 +114,7 @@ def main():
             if not file.endswith('.py'):
                 continue
 
-            enabled = ['anime']
+            enabled = ['anime', 'manga']
             if file[:-3] not in enabled:
                 continue
 

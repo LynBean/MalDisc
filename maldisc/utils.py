@@ -4,6 +4,7 @@ import sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
+from .__init__ import __version__
 from .constants import *
 
 
@@ -15,6 +16,8 @@ DISCORD_LOG_FILE = os.path.join(FILE_PATH, 'Discord.log')
 if not os.path.exists(FILE_PATH):
     os.mkdir(FILE_PATH + '/logs')
 
+def get_version():
+    return __version__
 
 def stream_supports_colour(stream) -> bool:
     is_a_tty = hasattr(stream, 'isatty') and stream.isatty()

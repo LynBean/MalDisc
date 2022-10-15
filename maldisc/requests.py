@@ -205,3 +205,16 @@ class MyAnimeList:
             year: int, season: str, sort:str = None,
             limit: int = None, offset: int = None, fields: str = None) -> dict:
             return await MyAnimeList.Requests(f'anime/season/{year}/{season}?{f"&sort={sort}" if sort != None else ""}{f"&limit={limit}" if limit != None else ""}{"&offset={offset}" if offset != None else ""}{"&fields={fields}" if fields != None else ""}')
+
+    class Manga:
+        async def Search(
+            query: str = None, limit: int = None, offset: int = None,
+            fields: str = None, nsfw: bool = None,
+            **kwargs) -> dict:
+            return await MyAnimeList.Requests(f'manga?{f"&q={query}" if query != None else ""}{f"&limit={limit}" if limit != None else ""}{f"&offset={offset}" if offset != None else ""}{f"&fields={fields}" if fields != None else ""}{f"&nsfw={nsfw}" if nsfw != None else ""}')
+        async def Manga(id, fields: str = None) -> dict:
+            return await MyAnimeList.Requests(f'manga/{id}{f"?fields={fields}" if fields != None else ""}')
+        async def Ranking(
+            ranking_type: str, limit: int = None, offset: int = None,
+            fields: str = None) -> dict:
+            return await MyAnimeList.Requests(f'manga/ranking/?ranking_type={ranking_type}{f"&limit={limit}" if limit != None else ""}{"&offset={offset}" if offset != None else ""}{"&fields={fields}" if fields != None else ""}')
