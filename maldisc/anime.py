@@ -33,7 +33,7 @@ class Anime(commands.Cog):
         if requester == Jikan.Anime.Search:
             for dict in response['data']:
                 result.append({
-                    'id': dict['id'],
+                    'id': dict['mal_id'],
                     'title': dict['title'],
                     'picture': dict['images']['jpg']['image_url'],
                     'score': dict['score'],
@@ -78,15 +78,10 @@ class Anime(commands.Cog):
         def __init__(self, id: int):
             self.id = id
             self.full = None
-            self.builtOverview = None
             self.characters = None
-            self.builtCharacters = None
             self.relations = None
-            self.builtRelations = None
             self.news = None
-            self.builtNews = None
             self.forum = None
-            self.builtForum = None
 
         async def getFull(self) -> None:
             if self.full != None: return
@@ -281,17 +276,15 @@ class Anime(commands.Cog):
                 embed.add_field(name = 'Broadcast', value = f"{data['broadcast']} 🆕",
                 inline = True)
 
-            self.builtOverview = [embed]
-            return
+            return [embed]
 
         async def buildCharacters(self) -> None:
             data = await self.arrangeCharacters()
             if data == None:
-                self.builtCharacters = [discord.Embed(
+                return [discord.Embed(
                     title = 'No Characters Found',
                     color = discord.Color.red()
                 )]
-                return
 
             embeds = []
             main, supporting = data
@@ -299,7 +292,7 @@ class Anime(commands.Cog):
             supporting_embed = discord.Embed(
                 title = 'Supporting Characters',
                 url = f'https://myanimelist.net/anime/{self.id}/characters',
-                color = discord.Color.random())
+                color = discord.Color.dark_gray())
 
             for character in main:
                 if len(embeds) < 9:
@@ -307,7 +300,7 @@ class Anime(commands.Cog):
                         title = character['name'],
                         description = f"Liked: {format(character['favorites'], ',d') if isinstance(character['favorites'], int) else 'N/A'}\n{character['voice_actor']}",
                         url = character['url'],
-                        color = discord.Color.random())
+                        color = discord.Color.dark_gold())
                     embed.set_thumbnail(url = character['image']) if character['image'] != None else None
                     embeds.append(embed)
                     continue
@@ -326,24 +319,22 @@ class Anime(commands.Cog):
                     inline = True)
 
             embeds.append(supporting_embed) if len(supporting_embed.fields) > 0 else None
-            self.builtCharacters = embeds
-            return
+            return embeds
 
         async def buildRelations(self) -> None:
             await self.getRelations()
             data = self.relations
             if len(data) == 0:
-                self.builtRelations = [discord.Embed(
+                return [discord.Embed(
                     title = 'No Relations Found',
                     color = discord.Color.red()
                 )]
-                return
 
             embeds = []
             for relation in data:
                 embed = discord.Embed(
                     title = relation['relation'],
-                    color = discord.Color.random())
+                    color = discord.Color.dark_magenta())
 
                 for entry in relation['entry']:
                     embed.add_field(
@@ -353,17 +344,15 @@ class Anime(commands.Cog):
                 embeds.append(embed)
                 continue
 
-            self.builtRelations = embeds
-            return
+            return embeds
 
         async def buildNews(self) -> None:
             data = await self.arrangeNews()
             if data == None:
-                self.builtNews = [discord.Embed(
+                return [discord.Embed(
                     title = 'No News Found',
                     color = discord.Color.red()
                 )]
-                return
 
             embeds = []
             for i, entry in enumerate(data):
@@ -372,23 +361,21 @@ class Anime(commands.Cog):
                 embed = discord.Embed(
                     title = entry['title'],
                     url = entry['url'],
-                    color = discord.Color.random())
+                    color = discord.Color.brand_green())
                 embed.set_author(name = entry['author'])
                 embed.set_thumbnail(url = entry['image'])
                 embed.set_footer(text = f"Published on {entry['date']}")
                 embeds.append(embed)
 
-            self.builtNews = embeds
-            return
+            return embeds
 
         async def buildForum(self) -> None:
             data = await self.arrangeForum()
             if data == None:
-                self.builtForum = [discord.Embed(
+                return [discord.Embed(
                     title = 'No Forum Found',
                     color = discord.Color.red()
                 )]
-                return
 
             embeds = []
             for i, thread in enumerate(data):
@@ -397,13 +384,12 @@ class Anime(commands.Cog):
                 embed = discord.Embed(
                     title = thread['title'],
                     url = thread['url'],
-                    color = discord.Color.random())
+                    color = discord.Color.blurple())
                 embed.set_author(name = thread['author'])
                 embed.set_footer(text = f"Published on {thread['date']}")
                 embeds.append(embed)
 
-            self.builtForum = embeds
-            return
+            return embeds
 
 
     @commands.hybrid_command(
@@ -502,7 +488,11 @@ class Anime(commands.Cog):
 
         anime_details = self.AnimeDetails(id = id)
         arranged_full = await anime_details.arrangeFull()
-        await anime_details.buildOverview()
+        built_overview = await anime_details.buildOverview()
+        built_characters = None
+        built_relations = None
+        built_news = None
+        built_forum = None
 
         # Making Buttons and Selections for the embed
         class View(discord.ui.View):
@@ -553,30 +543,23 @@ class Anime(commands.Cog):
                             discord.SelectOption(
                                 label = 'Overview',
                                 emoji = '📖',
-                                description = 'Overview of Anime'
-                                ),
+                                description = 'Overview of Anime'),
                             discord.SelectOption(
                                 label = 'Characters',
                                 emoji = '👦🏽',
-                                description = 'Characters in Anime'
-                                ),
+                                description = 'Characters in Anime'),
                             discord.SelectOption(
                                 label = 'Relations',
                                 emoji = '📺',
-                                description = 'Relations of Anime'
-                                ),
+                                description = 'Relations of Anime'),
                             discord.SelectOption(
                                 label = 'News',
                                 emoji = '📰',
-                                description = 'News of Anime'
-                                ),
+                                description = 'News of Anime'),
                             discord.SelectOption(
                                 label = 'Forum',
                                 emoji = '❓',
-                                description = 'Forum of Anime'
-                                ),
-                            ]
-                        )
+                                description = 'Forum of Anime')])
 
                     self.select = select
                     self.add_item(self.select)
@@ -586,35 +569,39 @@ class Anime(commands.Cog):
         async def callback(interaction: discord.Interaction):
             if interaction.data['values'][0] == 'Overview':
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtOverview)
+                await interaction.followup.edit_message(message_id = message.id, embeds = built_overview)
 
             elif interaction.data['values'][0] == 'Characters':
-                if anime_details.builtCharacters == None:
-                    await anime_details.buildCharacters()
-
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtCharacters)
+                nonlocal built_characters
+                if built_characters == None:
+                    built_characters = await anime_details.buildCharacters()
+
+                await interaction.followup.edit_message(message_id = message.id, embeds = built_characters)
 
             elif interaction.data['values'][0] == 'Relations':
-                if anime_details.builtRelations == None:
-                    await anime_details.buildRelations()
-
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtRelations)
+                nonlocal built_relations
+                if built_relations == None:
+                    built_relations = await anime_details.buildRelations()
+
+                await interaction.followup.edit_message(message_id = message.id, embeds = built_relations)
 
             elif interaction.data['values'][0] == 'News':
-                if anime_details.builtNews == None:
-                    await anime_details.buildNews()
-
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtNews)
+                nonlocal built_news
+                if built_news == None:
+                    built_news = await anime_details.buildNews()
+
+                await interaction.followup.edit_message(message_id = message.id, embeds = built_news)
 
             elif interaction.data['values'][0] == 'Forum':
-                if anime_details.builtForum == None:
-                    await anime_details.buildForum()
-
                 await interaction.response.defer()
-                await interaction.followup.edit_message(message_id = message.id, embeds = anime_details.builtForum)
+                nonlocal built_forum
+                if built_forum == None:
+                    built_forum = await anime_details.buildForum()
+
+                await interaction.followup.edit_message(message_id = message.id, embeds = built_forum)
 
             else:
                 await interaction.response.defer()
@@ -622,7 +609,7 @@ class Anime(commands.Cog):
         # Finalize the embeds and send them
         view = View()
         view.select.callback = callback
-        await message.edit(embeds = anime_details.builtOverview, view = view)
+        await message.edit(embeds = built_overview, view = view)
 
         # Wait for user interactions for a timeout of 300 seconds
         await view.wait()
