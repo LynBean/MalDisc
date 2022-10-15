@@ -442,7 +442,7 @@ class Anime(commands.Cog):
                     for index, dict in enumerate(result):
                         select_options.append(
                             discord.SelectOption(
-                                label = dict['title'],
+                                label = (dict['title'])[:100],
                                 value = str(index),
                                 description = f"{dict['media_type']} ({format(dict['episodes'], ',d') if isinstance(dict['episodes'], int) else 'N/A'} eps) Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'} {format(dict['members'], ',d') if isinstance(dict['members'], int) else 'N/A'} members",
                                 emoji = '📺' if dict['media_type'].upper() == 'TV' else '🎞️' if dict['media_type'].upper() == 'MOVIE' else '📼' if dict['media_type'].upper() in ('OVA', 'ONA', 'SPECIAL') else '🎵' if dict['media_type'].upper() == 'Music' else '📺'))

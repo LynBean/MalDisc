@@ -344,7 +344,7 @@ class Manga(commands.Cog):
             data = await self.arrangeTopics()
             if data == None:
                 return [discord.Embed(
-                    title = 'No Forum Found',
+                    title = 'No Topics Found',
                     color = discord.Color.red()
                 )]
 
@@ -413,7 +413,7 @@ class Manga(commands.Cog):
                     for index, dict in enumerate(result):
                         select_options.append(
                             discord.SelectOption(
-                                label = dict['title'],
+                                label = (dict['title'])[:100],
                                 value = str(index),
                                 description = f"{dict['media_type']} ({format(dict['volumes'], ',d') if isinstance(dict['volumes'], int) else 'N/A'} vols) Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'} {format(dict['members'], ',d') if isinstance(dict['members'], int) else 'N/A'} members",
                                 emoji = '🟩' if dict['media_type'].upper() == 'LIGHT_NOVEL' else '🟨' if dict['media_type'].upper() == 'MANGA' else '🟥' if dict['media_type'].upper() in ('MANHWA') else '1️⃣' if dict['media_type'].upper() == 'ONE_SHOT' else '⬛'))
