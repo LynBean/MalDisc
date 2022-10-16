@@ -5,9 +5,11 @@ import json
 import os
 import platform
 import sys
+import textwrap
 
 from discord.ext import commands
 from discord.ext.commands import Bot, Context
+from discord.ui import Button, View
 import discord
 
 from .constants import *
@@ -91,7 +93,7 @@ def main():
     @bot.event
     async def on_command_error(context: Context, error) -> None:
         if isinstance(error, commands.CommandNotFound):
-            return
+            return await context.send(f'Command not found. Use `{config["prefix"]} help` to see all available commands')
 
         else:
             full_command_name = context.command.qualified_name
@@ -109,6 +111,39 @@ def main():
     @bot.command()
     async def ping(context: Context):
         await context.send(f'Pong! {round(bot.latency * 1000)}ms')
+        
+    @bot.command()
+    async def help(context: Context):
+        description = textwrap.dedent(
+            f'''
+            **MyAnimeList in Discord Now!**
+            
+            **{config["prefix"]} __anime__ <title>**: Search for an anime
+            **{config["prefix"]} __manga__ <title>**: Search for a manga
+            **{config["prefix"]} __mangaid__ <id>**: Search for a manga by its ID
+            **{config["prefix"]} __animeid__ <id>**: Search for an anime by its ID
+            **{config["prefix"]} __ping__**: Pong! {round(bot.latency * 1000)}ms
+            **{config["prefix"]} __reload__**: Reload the bot
+            
+            
+            **Developer: <@893868099797934090>**
+            ''')
+        
+        embed = discord.Embed(
+            title = 'HELP!!!',
+            description = description,
+            color = discord.Color.blurple(),
+            url = 'https://github.com/LynBean/maldisc')
+        embed.set_thumbnail(url = bot.user.avatar.url)
+        embed.set_author(name = f'{context.author.name} is asking for ...', icon_url = context.author.avatar.url)
+        embed.set_footer(text = f'MalDisc version: {get_version()}')
+        await context.reply(
+            mention_author = False,
+            embed = embed,
+            view = View().add_item(Button(
+                style = discord.ButtonStyle.link,
+                label = 'Source Code',
+                url = 'https://github.com/LynBean/maldisc')))
 
     @bot.command()
     async def reload(context: Context):
