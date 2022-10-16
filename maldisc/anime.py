@@ -73,7 +73,6 @@ class Anime(commands.Cog):
                 continue
 
         return result
-
     class AnimeDetails:
         def __init__(self, id: int):
             self.id = id
@@ -196,6 +195,7 @@ class Anime(commands.Cog):
                 url = data['url'],
                 description = data['synopsis'],
                 color = discord.Color.random())
+            embed.set_author(name = 'MyAnimeList.net')
             embed.set_thumbnail(url = data['image'])
             embed.set_footer(text = data['background'])
             if isinstance(data['score'], float):
@@ -392,16 +392,7 @@ class Anime(commands.Cog):
             return embeds
 
 
-    @commands.hybrid_command(
-        name = 'ima',
-        description = 'Search your favorite anime on MyAnimeList')
-    async def All(
-        self,
-        context: Context,
-        *,
-        query: str
-        ) -> None:
-
+    async def SendEntry(self, context: Context, query: str) -> str:
         result = await self.Search(query)
 
         # If the response is empty, then return
@@ -480,6 +471,9 @@ class Anime(commands.Cog):
         elif len(result) == 1:
             id = result[0]['id']
 
+        return id
+
+    async def SendContext(self, context: Context, id: str) -> None:
         # Initialize Variables
         message = await context.send(
             embed = discord.Embed(
@@ -617,6 +611,35 @@ class Anime(commands.Cog):
         await message.edit(
             view = View(include_select = False))
 
+        return
+
+
+    @commands.hybrid_command(
+        name = 'anime',
+        description = 'Search your favorite anime on MyAnimeList')
+    async def Main(
+        self,
+        context: Context,
+        *,
+        query: str
+        ) -> None:
+
+        id = await self.SendEntry(context, query)
+        await self.SendContext(context, id)
+        return
+
+
+    @commands.hybrid_command(
+        name = 'animeid',
+        description = 'Search your favorite anime by given ID on MyAnimeList')
+    async def ID(
+        self,
+        context: Context,
+        *,
+        id: str
+        ) -> None:
+
+        await self.SendContext(context, id)
         return
 
 

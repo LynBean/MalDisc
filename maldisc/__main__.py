@@ -11,6 +11,7 @@ from discord.ext.commands import Bot, Context
 import discord
 
 from .constants import *
+from .exceptions import *
 from .utils import get_logger, get_version
 
 def main():
@@ -29,19 +30,18 @@ def main():
         with open(DIR_PATH + '/config.json') as file:
             config = json.load(file)
 
-    def get_prefix(bot, message):
+    def get_prefix():
         total = []
         a = map(''.join, itertools.product(*((c.upper(), c.lower()) for c in config['prefix'])))
         for x in list(a): total.append(x)
-        prefixes = list(total)
 
-        return commands.when_mentioned_or(*prefixes)(bot, message)
+        return tuple(total)
 
     intents = discord.Intents.default()
     intents.message_content = True
     bot = Bot(
         case_insensitive = True,
-        command_prefix = get_prefix,
+        command_prefix = '',
         description = 'MyAnimeList in Discord Now!',
         intents = intents,
         help_command = None)
@@ -54,17 +54,27 @@ def main():
         logger.info(f'Discord API version: {discord.__version__}')
         logger.info(f'Python version: {platform.python_version()}')
         logger.info(f'Running on: {platform.system()} {platform.release()} ({os.name})')
-        logger.info(f'Prefix: {config["prefix"]} (case insensitive and acceptable with maximum 1 space after prefix), mentionable')
+        logger.info(f'Prefix: {config["prefix"]} (case insensitive)')
         logger.info(f'Loaded {len(bot.cogs)} cogs with a total of {len(bot.commands)} commands')
 
     @bot.event
     async def on_message(message: discord.Message) -> None:
         if message.author == bot.user or message.author.bot:
             return
-        if message.content.lower().startswith(f'{config["prefix"].lower()} '):
-            message.content = config["prefix"] + message.content[len(config["prefix"]) + 1:]
 
-        await bot.process_commands(message)
+        if message.content.lower().startswith(get_prefix()):
+            message.content = message.content[len(config["prefix"]):].lstrip()
+            await bot.process_commands(message)
+
+        if 'https://myanimelist.net/' in message.content.lower() and config['enable_url_detection'] == True:
+            splitted = message.content.split('https://myanimelist.net/')[1].split('/')
+            type = splitted[0]
+            id = splitted[1]
+
+            message.content = f"{'animeid' if type == 'anime' else 'mangaid' if type == 'manga' else None} {id}"
+            await bot.process_commands(message)
+
+        return
 
     @bot.event
     async def on_command_completion(context: Context) -> None:

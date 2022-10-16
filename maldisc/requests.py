@@ -18,7 +18,7 @@ async def validJson(response):
         raise TooManyRequests()
 
     else:
-        raise Exception(f'**Status Code {response.status}**: {response.reason}')
+        raise RequestsError(f'**Status Code {response.status}**: {response.reason}')
 
 class Jikan:
 

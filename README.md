@@ -14,5 +14,8 @@
   - News
   - Topics
 
-- (Optional) Set default search API to official API (MAL) to have better accuracy
+Options in config.json
+- (Default: True) Detection of url in messages to return related anime/manga
+
+- (Default: False) Set default search API to official API (MAL) to have better accuracy
   - Get the client id from registering in https://myanimelist.net/apiconfig

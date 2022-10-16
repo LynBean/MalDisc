@@ -5,3 +5,6 @@ class RequestsException(Exception):
 
 class TooManyRequests(RequestsException):
     pass
+
+class RequestsError(RequestsException):
+    pass
