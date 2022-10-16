@@ -1,18 +1,20 @@
-- Command `ima` can be used to search **anime** through Jikan API on MyAnimeList
-- Now command `ima` will return 5 categories of embed,
+- Command `anime` can be used to search **anime** through Jikan API on MyAnimeList
+- Now command `anime` will return 5 categories of embed,
   - Overview
   - Characters
   - Relations
   - News
   - Forum
 
-- Command `imm` can be used to search **manga** through Jikan API on MyAnimeList
-- Now command `imm` will return 5 categories of embed,
+- Command `manga` can be used to search **manga** through Jikan API on MyAnimeList
+- Now command `manga` will return 5 categories of embed,
   - Overview
   - Characters
   - Relations
   - News
   - Topics
+
+Command `animeid` and `mangaid` are required to supply entry id based on MAL website after calling the command
 
 Options in config.json
 - (Default: True) Detection of url in messages to return related anime/manga
