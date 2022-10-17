@@ -22,7 +22,7 @@ async def validJson(response):
 
 class Jikan:
 
-    async def Requests(url: str, max_retry: int = 5) -> dict:
+    async def Requests(url: str, max_retry: int = 5, timeout: int = 5) -> dict:
 
         for _ in range(max_retry):
             async with aiohttp.ClientSession() as session:
@@ -39,7 +39,7 @@ class Jikan:
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'
                             },
 
-                        timeout = 2
+                        timeout = timeout
 
                         ) as response:
 
@@ -51,7 +51,7 @@ class Jikan:
                     await asyncio.sleep(1)
                     continue
 
-        raise Exception('Max retry exceeded')
+        raise RequestsError('Max retry exceeded')
 
     class Anime:
         async def Full(id) -> dict:
@@ -160,6 +160,17 @@ class Jikan:
             **kwargs) -> dict:
             return await Jikan.Requests(f'characters?{f"&page={page}" if page is not None else ""}{f"&limit={limit}" if limit is not None else ""}{f"&q={query}" if query is not None else ""}{f"&order_by={order_by}" if order_by is not None else ""}{f"&sort={sort}" if sort is not None else ""}{f"&letter={letter}" if letter is not None else ""}')
 
+    class Random:
+        async def Anime() -> dict:
+            return await Jikan.Requests(f'random/anime')
+        async def Manga() -> dict:
+            return await Jikan.Requests(f'random/manga')
+        async def Characters() -> dict:
+            return await Jikan.Requests(f'random/characters')
+        async def People() -> dict:
+            return await Jikan.Requests(f'random/people')
+        async def Users() -> dict:
+            return await Jikan.Requests(f'random/users', timeout = 10)
 
 class MyAnimeList:
 

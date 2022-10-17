@@ -4,6 +4,7 @@ import itertools
 import json
 import os
 import platform
+import random
 import sys
 import textwrap
 
@@ -111,39 +112,39 @@ def main():
     @bot.command()
     async def ping(context: Context):
         await context.send(f'Pong! {round(bot.latency * 1000)}ms')
-        
+
     @bot.command()
     async def help(context: Context):
-        description = textwrap.dedent(
-            f'''
-            **MyAnimeList in Discord Now!**
-            
-            **{config["prefix"]} __anime__ <title>**: Search for an anime
-            **{config["prefix"]} __manga__ <title>**: Search for a manga
-            **{config["prefix"]} __mangaid__ <id>**: Search for a manga by its ID
-            **{config["prefix"]} __animeid__ <id>**: Search for an anime by its ID
-            **{config["prefix"]} __ping__**: Pong! {round(bot.latency * 1000)}ms
-            **{config["prefix"]} __reload__**: Reload the bot
-            
-            
-            **Developer: <@893868099797934090>**
-            ''')
-        
         embed = discord.Embed(
             title = 'HELP!!!',
-            description = description,
+            description = textwrap.dedent(
+                f'''**Available commands:**
+
+                **{config["prefix"]} __anime__ <title>**
+                **{config["prefix"]} __manga__ <title>**
+                **{config["prefix"]} __animeid__ <id>**
+                **{config["prefix"]} __mangaid__ <id>**
+                **{config["prefix"]} __random__ <type> <number>**
+                **{config["prefix"]} __ping__**
+                **{config["prefix"]} __reload__**
+
+
+                **Developer: <@893868099797934090>**'''),
             color = discord.Color.blurple(),
-            url = 'https://github.com/LynBean/maldisc')
+            url = 'https://github.com/LynBean/MalDisc')
+
         embed.set_thumbnail(url = bot.user.avatar.url)
         embed.set_author(name = f'{context.author.name} is asking for ...', icon_url = context.author.avatar.url)
+        embed.set_image(url = f'https://opengraph.githubassets.com/{random.getrandbits(128):032x}/LynBean/MalDisc')
         embed.set_footer(text = f'MalDisc version: {get_version()}')
+
         await context.reply(
             mention_author = False,
             embed = embed,
             view = View().add_item(Button(
                 style = discord.ButtonStyle.link,
                 label = 'Source Code',
-                url = 'https://github.com/LynBean/maldisc')))
+                url = 'https://github.com/LynBean/MalDisc')))
 
     @bot.command()
     async def reload(context: Context):
@@ -159,7 +160,7 @@ def main():
             if not file.endswith('.py'):
                 continue
 
-            enabled = ['anime', 'manga']
+            enabled = ['anime', 'manga', 'random']
             if file[:-3] not in enabled:
                 continue
 

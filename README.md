@@ -14,10 +14,12 @@
   - News
   - Topics
 
-Command `animeid` and `mangaid` are required to supply entry id based on MAL website after calling the command
+- Command `animeid` and `mangaid` are required to supply entry id based on MAL website after calling the command
 
-Options in config.json
-- (Default: True) Detection of url in messages to return related anime/manga
+- Command `random` returns random entry
 
-- (Default: False) Set default search API to official API (MAL) to have better accuracy
-  - Get the client id from registering in https://myanimelist.net/apiconfig
+- Options in config.json
+  - (Default: True) Detection of url in messages to return related anime/manga
+
+  - (Default: False) Set default search API to official API (MAL) to have better accuracy
+    - Get the client id from registering in https://myanimelist.net/apiconfig

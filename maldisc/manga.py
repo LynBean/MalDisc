@@ -367,7 +367,8 @@ class Manga(commands.Cog):
 
         # If the response is empty, then return
         if len(result) == 0:
-            await context.send(
+            await context.reply(
+                mention_author = False,
                 embed = discord.Embed(
                     title = 'No results found',
                     color = 0xf37a12))
@@ -424,7 +425,7 @@ class Manga(commands.Cog):
 
             # Send the menu
             view = View()
-            message = await context.send(embed = embed, view = view)
+            message = await context.reply(mention_author = False, embed = embed, view = view)
             # Wait for the user to select an entry
             await view.wait()
 
@@ -445,7 +446,8 @@ class Manga(commands.Cog):
 
     async def SendContext(self, context: Context, id: str) -> None:
         # Initialize Variables
-        message = await context.send(
+        message = await context.reply(
+            mention_author = False,
             embed = discord.Embed(
                 title = 'Waiting for MyAnimeList response ...',
                 color = discord.Color.dark_teal()))

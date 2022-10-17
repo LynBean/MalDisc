@@ -397,7 +397,8 @@ class Anime(commands.Cog):
 
         # If the response is empty, then return
         if len(result) == 0:
-            await context.send(
+            await context.reply(
+                mention_author = False,
                 embed = discord.Embed(
                     title = 'No results found',
                     color = 0xf37a12))
@@ -454,7 +455,7 @@ class Anime(commands.Cog):
 
             # Send the menu
             view = View()
-            message = await context.send(embed = embed, view = view)
+            message = await context.reply(mention_author = False, embed = embed, view = view)
             # Wait for the user to select an anime
             await view.wait()
 
@@ -475,10 +476,11 @@ class Anime(commands.Cog):
 
     async def SendContext(self, context: Context, id: str) -> None:
         # Initialize Variables
-        message = await context.send(
+        message = await context.reply(
+            mention_author = False,
             embed = discord.Embed(
                 title = 'Waiting for MyAnimeList response ...',
-                color = 0xf37a12))
+                color = discord.Color.dark_gray()))
 
         anime_details = self.AnimeDetails(id = id)
         arranged_full = await anime_details.arrangeFull()
