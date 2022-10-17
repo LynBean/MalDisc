@@ -462,7 +462,7 @@ class Anime(commands.Cog):
             # If the user didn't select an anime, then return
             if view.choice == None:
                 await message.delete()
-                return
+                return None
 
             # If the user selected an anime, then update the response
             await message.delete()
@@ -627,6 +627,8 @@ class Anime(commands.Cog):
         ) -> None:
 
         id = await self.SendEntry(context, query)
+        if id == None: return
+
         await self.SendContext(context, id)
         return
 
