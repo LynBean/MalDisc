@@ -159,7 +159,7 @@ class MalDiscConfigParser:
         if datatype == bool:
             return self.config.getboolean(section, key)
         elif datatype == list:
-            return json.loads(self.config.get(section, key))
+            return json.loads(self.config.get(section, key).replace("'", '"'))
         elif datatype == int:
             return self.config.getint(section, key)
         elif datatype == float:
