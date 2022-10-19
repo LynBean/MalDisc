@@ -27,28 +27,29 @@ class Top(Cog):
         context: Context,
         type: str,
         *,
-        args) -> None:
+        args: Optional[str]) -> None:
 
         ranking_type = 'all'
         offset = 0
 
-        for arg in args.split():
-            if arg.startswith(('-offset', '--offset', '-o')):
-                offset = arg.split('=')[1]
+        if args != None:
+            for arg in args.split():
+                if arg.startswith(('-offset', '--offset', '-o')):
+                    offset = arg.split('=')[1]
 
-                if offset.isdigit():
-                    offset = int(offset)
-                    if offset < 0:
-                        raise BadArgument('Offset must be a positive integer')
+                    if offset.isdigit():
+                        offset = int(offset)
+                        if offset < 0:
+                            raise BadArgument('Offset must be a positive integer')
+
+                    else:
+                        raise BadArgument('Offset must be an integer')
+
+                elif arg.startswith(('-ranking', '--ranking', '-r')):
+                    ranking_type = arg.split('=')[1].lower()
 
                 else:
-                    raise BadArgument('Offset must be an integer')
-
-            elif arg.startswith(('-ranking', '--ranking', '-r')):
-                ranking_type = arg.split('=')[1].lower()
-
-            else:
-                raise BadArgument(f'Invalid argument: {arg}')
+                    raise BadArgument(f'Invalid argument: {arg}')
 
         # Validate type
         type = type.lower()
