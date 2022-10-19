@@ -1,14 +1,12 @@
 
 import asyncio
 import aiohttp
-import json
-import os
 
 from .constants import *
 from .exceptions import *
+from .utils import *
 
-with open(DIR_PATH + '/config.json') as file:
-    config = json.load(file)
+config = MalDiscConfigParser()
 
 async def validJson(response):
     if response.status in (200, 304):
@@ -22,7 +20,7 @@ async def validJson(response):
 
 class Jikan:
 
-    async def Requests(url: str, max_retry: int = 5, timeout: int = 5) -> dict:
+    async def Requests(url: str, max_retry: int = 5, timeout: float = 5.0) -> dict:
 
         for _ in range(max_retry):
             async with aiohttp.ClientSession() as session:
@@ -162,19 +160,31 @@ class Jikan:
 
     class Random:
         async def Anime() -> dict:
-            return await Jikan.Requests(f'random/anime')
+            return await Jikan.Requests('random/anime')
         async def Manga() -> dict:
-            return await Jikan.Requests(f'random/manga')
+            return await Jikan.Requests('random/manga')
         async def Characters() -> dict:
-            return await Jikan.Requests(f'random/characters')
+            return await Jikan.Requests('random/characters')
         async def People() -> dict:
-            return await Jikan.Requests(f'random/people')
+            return await Jikan.Requests('random/people')
         async def Users() -> dict:
-            return await Jikan.Requests(f'random/users', timeout = 10)
+            return await Jikan.Requests('random/users', timeout = 10)
+
+    class Top:
+        async def Anime(type: str = None, filter: str = None, page: int = None, limit: int = None, **kwargs) -> dict:
+            return await Jikan.Requests(f'top/anime?{f"&type={type}" if type is not None else ""}{f"&filter={filter}" if filter is not None else ""}{f"&page={page}" if page is not None else ""}{f"&limit={limit}" if limit is not None else ""}')
+        async def Manga(type: str = None, filter: str = None, page: int = None, limit: int = None, **kwargs) -> dict:
+            return await Jikan.Requests(f'top/manga?{f"&type={type}" if type is not None else ""}{f"&filter={filter}" if filter is not None else ""}{f"&page={page}" if page is not None else ""}{f"&limit={limit}" if limit is not None else ""}')
+        async def People(page: int = None, limit: int = None, **kwargs) -> dict:
+            return await Jikan.Requests(f'top/people?{f"&page={page}" if page is not None else ""}{f"&limit={limit}" if limit is not None else ""}')
+        async def Characters(page: int = None, limit: int = None, **kwargs) -> dict:
+            return await Jikan.Requests(f'top/characters?{f"&page={page}" if page is not None else ""}{f"&limit={limit}" if limit is not None else ""}')
+        async def Reviews(page: int = None, **kwargs) -> dict:
+            return await Jikan.Requests(f'top/reviews?{f"&page={page}" if page is not None else ""}')
 
 class MyAnimeList:
 
-    async def Requests(url: str, max_retry: int = 5) -> dict:
+    async def Requests(url: str, max_retry: int = 5, timeout: float = 5.0) -> dict:
 
         for _ in range(max_retry):
             async with aiohttp.ClientSession() as session:
@@ -185,12 +195,12 @@ class MyAnimeList:
                         f'https://api.myanimelist.net/v2/{url.replace(" ", "+")}',
 
                         headers = {
-                            'X-MAL-CLIENT-ID': config['mal_config']['client_id'],
+                            'X-MAL-CLIENT-ID': config.read(str, 'MAL_API', 'clientid'),
                             'Content-Type': 'application/json',
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'
                             },
 
-                        timeout = 2
+                        timeout = timeout
 
                         ) as response:
 
@@ -210,12 +220,15 @@ class MyAnimeList:
             return await MyAnimeList.Requests(f'anime/{id}{f"?fields={fields}" if fields != None else ""}')
         async def Ranking(
             ranking_type: str, limit: int = None, offset: int = None,
-            fields: str = None) -> dict:
-            return await MyAnimeList.Requests(f'anime/ranking/?ranking_type={ranking_type}{f"&limit={limit}" if limit != None else ""}{"&offset={offset}" if offset != None else ""}{"&fields={fields}" if fields != None else ""}')
+            fields: str = None, nsfw: bool = None,
+            **kwargs) -> dict:
+            return await MyAnimeList.Requests(f'anime/ranking?ranking_type={ranking_type}{f"&limit={limit}" if limit != None else ""}{f"&offset={offset}" if offset != None else ""}{f"&fields={fields}" if fields != None else ""}{f"&nsfw={nsfw}" if nsfw != None else ""}')
         async def Seasonal(
             year: int, season: str, sort:str = None,
-            limit: int = None, offset: int = None, fields: str = None) -> dict:
-            return await MyAnimeList.Requests(f'anime/season/{year}/{season}?{f"&sort={sort}" if sort != None else ""}{f"&limit={limit}" if limit != None else ""}{"&offset={offset}" if offset != None else ""}{"&fields={fields}" if fields != None else ""}')
+            limit: int = None, offset: int = None,
+            fields: str = None, nsfw: bool = None,
+            **kwargs) -> dict:
+            return await MyAnimeList.Requests(f'anime/season/{year}/{season}?{f"&sort={sort}" if sort != None else ""}{f"&limit={limit}" if limit != None else ""}{f"&offset={offset}" if offset != None else ""}{f"&fields={fields}" if fields != None else ""}{f"&nsfw={nsfw}" if nsfw != None else ""}')
 
     class Manga:
         async def Search(
@@ -227,5 +240,6 @@ class MyAnimeList:
             return await MyAnimeList.Requests(f'manga/{id}{f"?fields={fields}" if fields != None else ""}')
         async def Ranking(
             ranking_type: str, limit: int = None, offset: int = None,
-            fields: str = None) -> dict:
-            return await MyAnimeList.Requests(f'manga/ranking/?ranking_type={ranking_type}{f"&limit={limit}" if limit != None else ""}{"&offset={offset}" if offset != None else ""}{"&fields={fields}" if fields != None else ""}')
+            fields: str = None, nsfw: bool = None,
+            **kwargs) -> dict:
+            return await MyAnimeList.Requests(f'manga/ranking?ranking_type={ranking_type}{f"&limit={limit}" if limit != None else ""}{f"&offset={offset}" if offset != None else ""}{f"&fields={fields}" if fields != None else ""}{f"&nsfw={nsfw}" if nsfw != None else ""}')

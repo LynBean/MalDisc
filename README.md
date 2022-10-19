@@ -1,25 +1,24 @@
-- Command `anime` can be used to search **anime** through Jikan API on MyAnimeList
-- Now command `anime` will return 5 categories of embed,
-  - Overview
-  - Characters
-  - Relations
-  - News
-  - Forum
+# Now available commands:
+  - anime
+  - manga
+  - animeid
+  - mangaid
+  - random
+  - top
+  - Command `help <command>` for more information
 
-- Command `manga` can be used to search **manga** through Jikan API on MyAnimeList
-- Now command `manga` will return 5 categories of embed,
-  - Overview
-  - Characters
-  - Relations
-  - News
-  - Topics
 
-- Command `animeid` and `mangaid` are required to supply entry id based on MAL website after calling the command
+# Options in `config.ini`
+Path for Windows: %USER_PROFILE%/AppData/Local/Kim/MalDisc/
 
-- Command `random` returns random entry
+Path for Linux: %USER_PROFILE%/.local/share/MalDisc/
 
-- Options in config.json
-  - (Default: True) Detection of url in messages to return related anime/manga
+[FEATURES]
+- enableurldetection = `boolean` (Default: True)
 
-  - (Default: False) Set default search API to official API (MAL) to have better accuracy
-    - Get the client id from registering in https://myanimelist.net/apiconfig
+[MAL_API]
+- enabled = `boolean` (Default: False)
+  - Set default search API to official API (MAL) to have better accuracy
+
+- clientid = `string`
+  - Get the client id from registering in https://myanimelist.net/apiconfig

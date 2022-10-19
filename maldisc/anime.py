@@ -1,9 +1,10 @@
 
-import asyncio
+from typing import List
+import textwrap
 
+from discord import Color, Embed, Interaction, SelectOption
 from discord.enums import ButtonStyle
-from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import Cog, Context, hybrid_command
 from discord.ui import Button, Select, View
 import discord
 
@@ -12,13 +13,13 @@ from datetime import datetime, timezone
 from .constants import *
 from .requests import *
 
-class Anime(commands.Cog):
+class Anime(Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
     async def Search(self, query: str) -> list:
-        requester = Jikan.Anime.Search if self.bot.config['mal_config']['enabled'] != True else MyAnimeList.Anime.Search
+        requester = Jikan.Anime.Search if self.bot.config.read(bool, 'MAL_API', 'enabled') != True else MyAnimeList.Anime.Search
         response = await requester(
             query = query,
             limit = 25,
@@ -188,13 +189,13 @@ class Anime(commands.Cog):
 
             return result
 
-        async def buildOverview(self) -> None:
+        async def buildOverview(self) -> List[Embed]:
             data = await self.arrangeFull()
-            embed = discord.Embed(
+            embed = Embed(
                 title = data['title'],
                 url = data['url'],
                 description = data['synopsis'],
-                color = discord.Color.random())
+                color = Color.random())
             embed.set_author(name = 'MyAnimeList.net')
             embed.set_thumbnail(url = data['image'])
             embed.set_footer(text = data['background'])
@@ -278,29 +279,31 @@ class Anime(commands.Cog):
 
             return [embed]
 
-        async def buildCharacters(self) -> None:
+        async def buildCharacters(self) -> List[Embed]:
             data = await self.arrangeCharacters()
             if data == None:
-                return [discord.Embed(
+                return [Embed(
                     title = 'No Characters Found',
-                    color = discord.Color.red()
+                    color = Color.red()
                 )]
 
             embeds = []
             main, supporting = data
 
-            supporting_embed = discord.Embed(
+            supporting_embed = Embed(
                 title = 'Supporting Characters',
                 url = f'https://myanimelist.net/anime/{self.id}/characters',
-                color = discord.Color.dark_gray())
+                color = Color.dark_gray())
 
             for character in main:
                 if len(embeds) < 9:
-                    embed = discord.Embed(
+                    embed = Embed(
                         title = character['name'],
-                        description = f"Liked: {format(character['favorites'], ',d') if isinstance(character['favorites'], int) else 'N/A'}\n{character['voice_actor']}",
+                        description = textwrap.dedent(f'''
+                            Liked: {format(character["favorites"], ",d") if isinstance(character["favorites"], int) else "N/A"}
+                            {character["voice_actor"]}'''),
                         url = character['url'],
-                        color = discord.Color.dark_gold())
+                        color = Color.dark_gold())
                     embed.set_thumbnail(url = character['image']) if character['image'] != None else None
                     embeds.append(embed)
                     continue
@@ -308,33 +311,37 @@ class Anime(commands.Cog):
                 else:
                     supporting_embed.add_field(
                         name = f"{character['name']} (Main)",
-                        value = f"Liked: {format(character['favorites'], ',d') if isinstance(character['favorites'], int) else 'N/A'}\n{character['voice_actor']}",
+                        value = textwrap.dedent(f'''
+                            Liked: {format(character["favorites"], ",d") if isinstance(character["favorites"], int) else "N/A"}
+                            {character["voice_actor"]}'''),
                         inline = True)
                     continue
 
             for character in supporting:
                 supporting_embed.add_field(
                     name = f"{character['name']}",
-                    value = f"Liked: {format(character['favorites'], ',d') if isinstance(character['favorites'], int) else 'N/A'}\n{character['voice_actor']}",
+                    value = textwrap.dedent(f'''
+                        Liked: {format(character["favorites"], ",d") if isinstance(character["favorites"], int) else "N/A"}
+                        {character["voice_actor"]}'''),
                     inline = True)
 
             embeds.append(supporting_embed) if len(supporting_embed.fields) > 0 else None
             return embeds
 
-        async def buildRelations(self) -> None:
+        async def buildRelations(self) -> List[Embed]:
             await self.getRelations()
             data = self.relations
             if len(data) == 0:
-                return [discord.Embed(
+                return [Embed(
                     title = 'No Relations Found',
-                    color = discord.Color.red()
+                    color = Color.red()
                 )]
 
             embeds = []
             for relation in data:
-                embed = discord.Embed(
+                embed = Embed(
                     title = relation['relation'],
-                    color = discord.Color.dark_magenta())
+                    color = Color.dark_magenta())
 
                 for entry in relation['entry']:
                     embed.add_field(
@@ -346,22 +353,22 @@ class Anime(commands.Cog):
 
             return embeds
 
-        async def buildNews(self) -> None:
+        async def buildNews(self) -> List[Embed]:
             data = await self.arrangeNews()
             if data == None:
-                return [discord.Embed(
+                return [Embed(
                     title = 'No News Found',
-                    color = discord.Color.red()
+                    color = Color.red()
                 )]
 
             embeds = []
             for i, entry in enumerate(data):
                 if i == 10: break
 
-                embed = discord.Embed(
+                embed = Embed(
                     title = entry['title'],
                     url = entry['url'],
-                    color = discord.Color.brand_green())
+                    color = Color.brand_green())
                 embed.set_author(name = entry['author'])
                 embed.set_thumbnail(url = entry['image'])
                 embed.set_footer(text = f"Published on {entry['date']}")
@@ -369,22 +376,22 @@ class Anime(commands.Cog):
 
             return embeds
 
-        async def buildForum(self) -> None:
+        async def buildForum(self) -> List[Embed]:
             data = await self.arrangeForum()
             if data == None:
-                return [discord.Embed(
+                return [Embed(
                     title = 'No Forum Found',
-                    color = discord.Color.red()
+                    color = Color.red()
                 )]
 
             embeds = []
             for i, thread in enumerate(data):
                 if i == 10: break
 
-                embed = discord.Embed(
+                embed = Embed(
                     title = thread['title'],
                     url = thread['url'],
-                    color = discord.Color.blurple())
+                    color = Color.blurple())
                 embed.set_author(name = thread['author'])
                 embed.set_footer(text = f"Published on {thread['date']}")
                 embeds.append(embed)
@@ -399,32 +406,37 @@ class Anime(commands.Cog):
         if len(result) == 0:
             await context.reply(
                 mention_author = False,
-                embed = discord.Embed(
+                embed = Embed(
                     title = 'No results found',
-                    color = 0xf37a12))
+                    color = Color.dark_red()))
             return
 
         # If the there are more than 1 results, then send a select menu
         elif len(result) > 1:
-            embed = discord.Embed(
+            embed = Embed(
                 title = '**MyAnimeList**',
-                description = f"{context.author.mention}\n**🎉 Hooray, we received several entries that were similar to your request**\n**👉🏽` {query} `👈🏽**\n\n**Please choose one of the anime listed below 😚\nSurely, the anime you're looking for is on the list uwu~ 😶‍🌫️**",
+                description = textwrap.dedent(f'''
+                    {context.author.mention}
+                    **🎉 Hooray, we received several entries that were similar to your request**
+                    **👉🏽` {query} `👈🏽**
+
+                    **Please choose one of the anime listed below 😚**
+                    **Surely, the anime you're looking for is on the list uwu~ 😶‍🌫️**'''),
                 url = f'https://myanimelist.net/search/all?q={query.replace(" ", "%20")}&cat=all')
 
             embed.set_thumbnail(url = 'https://upload.wikimedia.org/wikipedia/commons/7/7a/MyAnimeList_Logo.png')
+            embed.set_footer(icon_url = context.author.avatar.url, text = f'Have a nice day !! 😚')
 
             for data in result:
                 if data['picture'] == None: continue
                 embed.set_image(url = data['picture'])
                 break
 
-            embed.set_footer(icon_url = context.author.avatar.url, text = f'Have a nice day !! 😚')
-
             # Making Buttons and Selections
             class View(discord.ui.View):
                 def __init__(
                     self,
-                    timeout = 300
+                    timeout: float = self.bot.config.read(float, 'FEATURES', 'interactiontimeout')
                     ):
 
                     super().__init__(timeout = timeout)
@@ -433,19 +445,28 @@ class Anime(commands.Cog):
                     select_options = []
                     for index, dict in enumerate(result):
                         select_options.append(
-                            discord.SelectOption(
+                            SelectOption(
                                 label = (dict['title'])[:100],
                                 value = str(index),
-                                description = f"{dict['media_type']} ({format(dict['episodes'], ',d') if isinstance(dict['episodes'], int) else 'N/A'} eps) Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'} {format(dict['members'], ',d') if isinstance(dict['members'], int) else 'N/A'} members",
-                                emoji = '📺' if dict['media_type'].upper() == 'TV' else '🎞️' if dict['media_type'].upper() == 'MOVIE' else '📼' if dict['media_type'].upper() in ('OVA', 'ONA', 'SPECIAL') else '🎵' if dict['media_type'].upper() == 'Music' else '📺'))
 
-                    select = discord.ui.Select(
+                                description = f"{dict['media_type']} " \
+                                    f"({format(dict['episodes'], ',d') if isinstance(dict['episodes'], int) else 'N/A'} eps) " \
+                                        f"Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'} " \
+                                            f"{format(dict['members'], ',d') if isinstance(dict['members'], int) else 'N/A'} members",
+
+                                emoji = '📺' if dict['media_type'].upper() == 'TV' \
+                                    else '🎞️' if dict['media_type'].upper() == 'MOVIE' \
+                                        else '📼' if dict['media_type'].upper() in ('OVA', 'ONA', 'SPECIAL') \
+                                            else '🎵' if dict['media_type'].upper() == 'Music' \
+                                                else '📺'))
+
+                    select = Select(
                         placeholder = 'Select an anime',
                         options = select_options,
                         min_values = 1,
                         max_values = 1)
 
-                    async def callback(interaction: discord.Interaction):
+                    async def callback(interaction: Interaction):
                         await interaction.response.defer()
                         self.choice = int(interaction.data['values'][0])
                         self.stop()
@@ -478,9 +499,9 @@ class Anime(commands.Cog):
         # Initialize Variables
         message = await context.reply(
             mention_author = False,
-            embed = discord.Embed(
+            embed = Embed(
                 title = 'Waiting for MyAnimeList response ...',
-                color = discord.Color.dark_gray()))
+                color = Color.dark_gray()))
 
         anime_details = self.AnimeDetails(id = id)
         arranged_full = await anime_details.arrangeFull()
@@ -495,7 +516,7 @@ class Anime(commands.Cog):
             def __init__(
                 self,
                 *,
-                timeout: int = 300,
+                timeout: float = self.bot.config.read(float, 'FEATURES', 'interactiontimeout'),
                 include_button: bool = True,
                 include_select: bool = True
                 ) -> None:
@@ -536,23 +557,23 @@ class Anime(commands.Cog):
                         min_values = 1,
                         max_values = 1,
                         options = [
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'Overview',
                                 emoji = '📖',
                                 description = 'Overview of Anime'),
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'Characters',
                                 emoji = '👦🏽',
                                 description = 'Characters in Anime'),
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'Relations',
                                 emoji = '📺',
                                 description = 'Relations of Anime'),
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'News',
                                 emoji = '📰',
                                 description = 'News of Anime'),
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'Forum',
                                 emoji = '❓',
                                 description = 'Forum of Anime')])
@@ -562,7 +583,7 @@ class Anime(commands.Cog):
                     return
 
         # A callback function to catch user interactions with the selection menu
-        async def callback(interaction: discord.Interaction):
+        async def callback(interaction: Interaction):
             if interaction.data['values'][0] == 'Overview':
                 await interaction.response.defer()
                 await interaction.followup.edit_message(message_id = message.id, embeds = built_overview)
@@ -607,7 +628,7 @@ class Anime(commands.Cog):
         view.select.callback = callback
         await message.edit(embeds = built_overview, view = view)
 
-        # Wait for user interactions for a timeout of 300 seconds
+        # Wait for user interactions for a timeout of default: 300 seconds
         await view.wait()
         # Delete the selection menu after the timeout, and keep the embed
         await message.edit(
@@ -616,16 +637,10 @@ class Anime(commands.Cog):
         return
 
 
-    @commands.hybrid_command(
+    @hybrid_command(
         name = 'anime',
         description = 'Search your favorite anime on MyAnimeList')
-    async def Main(
-        self,
-        context: Context,
-        *,
-        query: str
-        ) -> None:
-
+    async def Main(self, context: Context, *, query: str) -> None:
         id = await self.SendEntry(context, query)
         if id == None: return
 
@@ -633,19 +648,12 @@ class Anime(commands.Cog):
         return
 
 
-    @commands.hybrid_command(
+    @hybrid_command(
         name = 'animeid',
         description = 'Search your favorite anime by given ID on MyAnimeList')
-    async def ID(
-        self,
-        context: Context,
-        *,
-        id: str
-        ) -> None:
-
+    async def ID(self, context: Context, *, id: str) -> None:
         await self.SendContext(context, id)
         return
-
 
 
 async def setup(bot):

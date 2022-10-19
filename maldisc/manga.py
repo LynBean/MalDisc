@@ -1,9 +1,10 @@
 
-import asyncio
+from typing import List
+import textwrap
 
+from discord import Color, Embed, Interaction, SelectOption
 from discord.enums import ButtonStyle
-from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import Cog, Context, hybrid_command
 from discord.ui import Button, Select, View
 import discord
 
@@ -12,19 +13,19 @@ from datetime import datetime, timezone
 from .constants import *
 from .requests import *
 
-class Manga(commands.Cog):
+class Manga(Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
     async def Search(self, query: str) -> list:
-        requester = Jikan.Manga.Search if self.bot.config['mal_config']['enabled'] != True else MyAnimeList.Manga.Search
+        requester = Jikan.Manga.Search if self.bot.config.read(bool, 'MAL_API', 'enabled') != True else MyAnimeList.Manga.Search
         response = await requester(
             query = query,
             limit = 25,
             order_by = 'score',
             sort = 'desc',
-            fields = 'id,title,main_picture,mean,rank,media_type,num_episodes,num_list_users',
+            fields = 'id,title,main_picture,mean,rank,media_type,num_volumes,num_list_users',
             sfw = False,
             nsfw = True)
 
@@ -177,13 +178,13 @@ class Manga(commands.Cog):
 
             return result
 
-        async def buildOverview(self) -> None:
+        async def buildOverview(self) -> List[Embed]:
             data = await self.arrangeFull()
-            embed = discord.Embed(
+            embed = Embed(
                 title = data['title'],
                 url = data['url'],
                 description = data['synopsis'],
-                color = discord.Color.random())
+                color = Color.random())
             embed.set_author(name = 'MyAnimeList.net')
             embed.set_thumbnail(url = data['image'])
             embed.set_footer(text = data['background'])
@@ -250,28 +251,28 @@ class Manga(commands.Cog):
 
             return [embed]
 
-        async def buildCharacters(self) -> None:
+        async def buildCharacters(self) -> List[Embed]:
             data = await self.arrangeCharacters()
             if data == None:
-                return [discord.Embed(
+                return [Embed(
                     title = 'No Characters Found',
-                    color = discord.Color.red()
+                    color = Color.red()
                 )]
 
             embeds = []
             main, supporting = data
 
-            supporting_embed = discord.Embed(
+            supporting_embed = Embed(
                 title = 'Supporting Characters',
                 url = f'https://myanimelist.net/manga/{self.id}/characters',
-                color = discord.Color.dark_gray())
+                color = Color.dark_gray())
 
             for character in main:
                 if len(embeds) < 9:
-                    embed = discord.Embed(
+                    embed = Embed(
                         title = character['name'],
                         url = character['url'],
-                        color = discord.Color.dark_gold())
+                        color = Color.dark_gold())
                     embed.set_thumbnail(url = character['image']) if character['image'] != None else None
                     embeds.append(embed)
                     continue
@@ -292,20 +293,20 @@ class Manga(commands.Cog):
             embeds.append(supporting_embed) if len(supporting_embed.fields) > 0 else None
             return embeds
 
-        async def buildRelations(self) -> None:
+        async def buildRelations(self) -> List[Embed]:
             await self.getRelations()
             data = self.relations
             if len(data) == 0:
-                return [discord.Embed(
+                return [Embed(
                     title = 'No Relations Found',
-                    color = discord.Color.red()
+                    color = Color.red()
                 )]
 
             embeds = []
             for relation in data:
-                embed = discord.Embed(
+                embed = Embed(
                     title = relation['relation'],
-                    color = discord.Color.dark_magenta())
+                    color = Color.dark_magenta())
 
                 for entry in relation['entry']:
                     embed.add_field(
@@ -317,22 +318,22 @@ class Manga(commands.Cog):
 
             return embeds
 
-        async def buildNews(self) -> None:
+        async def buildNews(self) -> List[Embed]:
             data = await self.arrangeNews()
             if data == None:
-                return [discord.Embed(
+                return [Embed(
                     title = 'No News Found',
-                    color = discord.Color.red()
+                    color = Color.red()
                 )]
 
             embeds = []
             for i, entry in enumerate(data):
                 if i == 10: break
 
-                embed = discord.Embed(
+                embed = Embed(
                     title = entry['title'],
                     url = entry['url'],
-                    color = discord.Color.brand_green())
+                    color = Color.brand_green())
                 embed.set_author(name = entry['author'])
                 embed.set_thumbnail(url = entry['image'])
                 embed.set_footer(text = f"Published on {entry['date']}")
@@ -340,22 +341,22 @@ class Manga(commands.Cog):
 
             return embeds
 
-        async def buildTopics(self) -> None:
+        async def buildTopics(self) -> List[Embed]:
             data = await self.arrangeTopics()
             if data == None:
-                return [discord.Embed(
+                return [Embed(
                     title = 'No Topics Found',
-                    color = discord.Color.red()
+                    color = Color.red()
                 )]
 
             embeds = []
             for i, thread in enumerate(data):
                 if i == 10: break
 
-                embed = discord.Embed(
+                embed = Embed(
                     title = thread['title'],
                     url = thread['url'],
-                    color = discord.Color.blurple())
+                    color = Color.blurple())
                 embed.set_author(name = thread['author'])
                 embed.set_footer(text = f"Published on {thread['date']}")
                 embeds.append(embed)
@@ -369,16 +370,22 @@ class Manga(commands.Cog):
         if len(result) == 0:
             await context.reply(
                 mention_author = False,
-                embed = discord.Embed(
+                embed = Embed(
                     title = 'No results found',
-                    color = 0xf37a12))
+                    color = Color.dark_red()))
             return
 
         # If the there are more than 1 results, then send a select menu
         elif len(result) > 1:
-            embed = discord.Embed(
+            embed = Embed(
                 title = '**MyAnimeList**',
-                description = f"{context.author.mention}\n**🎉 Hooray, we received several entries that were similar to your request**\n**👉🏽` {query} `👈🏽**\n\n**Please choose one of the manga listed below 😚\nSurely, the manga you're looking for is on the list uwu~ 😶‍🌫️**",
+                description = textwrap.dedent(f'''
+                    {context.author.mention}
+                    **🎉 Hooray, we received several entries that were similar to your request**
+                    **👉🏽` {query} `👈🏽**
+
+                    **Please choose one of the manga listed below 😚**
+                    **Surely, the manga you're looking for is on the list uwu~ 😶‍🌫️**'''),
                 url = f'https://myanimelist.net/search/all?q={query.replace(" ", "%20")}&cat=all')
 
             embed.set_thumbnail(url = 'https://upload.wikimedia.org/wikipedia/commons/7/7a/MyAnimeList_Logo.png')
@@ -394,7 +401,7 @@ class Manga(commands.Cog):
             class View(discord.ui.View):
                 def __init__(
                     self,
-                    timeout = 300
+                    timeout: float = self.bot.config.read(float, 'FEATURES', 'interactiontimeout')
                     ):
 
                     super().__init__(timeout = timeout)
@@ -403,19 +410,28 @@ class Manga(commands.Cog):
                     select_options = []
                     for index, dict in enumerate(result):
                         select_options.append(
-                            discord.SelectOption(
+                            SelectOption(
                                 label = (dict['title'])[:100],
                                 value = str(index),
-                                description = f"{dict['media_type']} ({format(dict['volumes'], ',d') if isinstance(dict['volumes'], int) else 'N/A'} vols) Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'} {format(dict['members'], ',d') if isinstance(dict['members'], int) else 'N/A'} members",
-                                emoji = '🟩' if dict['media_type'].upper() == 'LIGHT_NOVEL' else '🟨' if dict['media_type'].upper() == 'MANGA' else '🟥' if dict['media_type'].upper() in ('MANHWA') else '1️⃣' if dict['media_type'].upper() == 'ONE_SHOT' else '⬛'))
 
-                    select = discord.ui.Select(
+                                description = f"{dict['media_type']} " \
+                                    f"({format(dict['volumes'], ',d') if isinstance(dict['volumes'], int) else 'N/A'} vols) " \
+                                        f"Scored {dict['score'] if isinstance(dict['score'], float) else 'N/A'} " \
+                                            f"{format(dict['members'], ',d') if isinstance(dict['members'], int) else 'N/A'} members",
+
+                                emoji = '🟩' if dict['media_type'].upper() == 'LIGHT_NOVEL' \
+                                    else '🟨' if dict['media_type'].upper() == 'MANGA' \
+                                        else '🟥' if dict['media_type'].upper() in ('MANHWA') \
+                                            else '1️⃣' if dict['media_type'].upper() == 'ONE_SHOT' \
+                                                else '⬛'))
+
+                    select = Select(
                         placeholder = 'Select an manga',
                         options = select_options,
                         min_values = 1,
                         max_values = 1)
 
-                    async def callback(interaction: discord.Interaction):
+                    async def callback(interaction: Interaction):
                         await interaction.response.defer()
                         self.choice = int(interaction.data['values'][0])
                         self.stop()
@@ -432,7 +448,7 @@ class Manga(commands.Cog):
             # If the user didn't select an entry, then return
             if view.choice == None:
                 await message.delete()
-                return
+                return None
 
             # If the user selected an entry, then update the response
             await message.delete()
@@ -448,9 +464,9 @@ class Manga(commands.Cog):
         # Initialize Variables
         message = await context.reply(
             mention_author = False,
-            embed = discord.Embed(
+            embed = Embed(
                 title = 'Waiting for MyAnimeList response ...',
-                color = discord.Color.dark_teal()))
+                color = Color.dark_teal()))
 
         manga_details = self.MangaDetails(id = id)
         arranged_full = await manga_details.arrangeFull()
@@ -465,7 +481,7 @@ class Manga(commands.Cog):
             def __init__(
                 self,
                 *,
-                timeout: int = 300,
+                timeout: float = self.bot.config.read(float, 'FEATURES', 'interactiontimeout'),
                 include_button: bool = True,
                 include_select: bool = True
                 ) -> None:
@@ -490,23 +506,23 @@ class Manga(commands.Cog):
                         min_values = 1,
                         max_values = 1,
                         options = [
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'Overview',
                                 emoji = '📖',
                                 description = 'Overview of Manga'),
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'Characters',
                                 emoji = '👦🏽',
                                 description = 'Characters in Manga'),
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'Relations',
                                 emoji = '📺',
                                 description = 'Relations of Manga'),
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'News',
                                 emoji = '📰',
                                 description = 'News of Manga'),
-                            discord.SelectOption(
+                            SelectOption(
                                 label = 'Topics',
                                 emoji = '❓',
                                 description = 'Topics of Manga')])
@@ -516,7 +532,7 @@ class Manga(commands.Cog):
                     return
 
         # A callback function to catch user interactions with the selection menu
-        async def callback(interaction: discord.Interaction):
+        async def callback(interaction: Interaction):
             if interaction.data['values'][0] == 'Overview':
                 await interaction.response.defer()
                 await interaction.followup.edit_message(message_id = message.id, embeds = built_overview)
@@ -561,7 +577,7 @@ class Manga(commands.Cog):
         view.select.callback = callback
         await message.edit(embeds = built_overview, view = view)
 
-        # Wait for user interactions for a timeout of 300 seconds
+        # Wait for user interactions for a timeout of default: 300 seconds
         await view.wait()
         # Delete the selection menu after the timeout, and keep the embed
         await message.edit(
@@ -570,34 +586,25 @@ class Manga(commands.Cog):
         return
 
 
-    @commands.hybrid_command(
+    @hybrid_command(
         name = 'manga',
         description = 'Search your favorite manga on MyAnimeList')
-    async def Manga(
-        self,
-        context: Context,
-        *,
-        query: str
-        ) -> None:
+    async def Manga(self, context: Context, *, query: str) -> None:
 
         id = await self.SendEntry(context, query)
+        if id == None: return
+
         await self.SendContext(context, id)
         return
 
 
-    @commands.hybrid_command(
+    @hybrid_command(
         name = 'mangaid',
         description = 'Search your favorite manga by given ID on MyAnimeList')
-    async def ID(
-        self,
-        context: Context,
-        *,
-        id: str
-        ) -> None:
+    async def ID(self, context: Context, *, id: str) -> None:
 
         await self.SendContext(context, id)
         return
-
 
 
 async def setup(bot):
