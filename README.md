@@ -5,6 +5,7 @@
   - mangaid
   - random
   - top
+  - eval
   - Command `help <command>` for more information
 
 

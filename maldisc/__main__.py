@@ -6,6 +6,7 @@ import platform
 import random
 import textwrap
 
+from discord import Intents, Message
 from discord.ext.commands import Bot, CommandNotFound, Context, ExtensionAlreadyLoaded
 from discord.ui import Button, View
 import discord
@@ -33,8 +34,7 @@ def main():
         return tuple(dict.fromkeys(total))
 
     prefixes = get_prefix()
-    intents = discord.Intents.default()
-    intents.message_content = True
+    intents = Intents().all()
     bot = Bot(
         case_insensitive = True,
         command_prefix = '',
@@ -56,7 +56,7 @@ def main():
         return
 
     @bot.event
-    async def on_message(message: discord.Message):
+    async def on_message(message: Message):
         if message.author == bot.user or message.author.bot:
             return
 
@@ -93,8 +93,8 @@ def main():
     @bot.event
     async def on_command_error(context: Context, error):
         if isinstance(error, CommandNotFound):
-            await context.send(f'Command not found. Use' \
-                f'`{config.read(list, "BOT", "prefixes")[0]} help`' \
+            await context.send(f'Command not found. Use '\
+                f'`{config.read(list, "BOT", "prefixes")[0]} help` '\
                     'to see all available commands')
 
         else:
@@ -129,7 +129,7 @@ def main():
             if not file.endswith('.py'):
                 continue
 
-            enabled = ['anime', 'manga', 'random', 'top', 'help']
+            enabled = ['anime', 'manga', 'random', 'top', 'help', 'eval']
             if file[:-3] not in enabled:
                 continue
 

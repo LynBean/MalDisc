@@ -162,10 +162,60 @@ class Help(Cog):
                 `{self.bot.config.read(list, "BOT", "prefixes")[0]} reload`'''),
             color = Color.dark_blue())
 
+    def Eval(self) -> str:
+        return textwrap.dedent(f'''
+            ```Python
+            YOU HAD ENTERED DANGER ZONE
+
+            Eval is a very powerful command, and it can be used to do anything.
+            You may eval anything you want, but be careful.
+            Don't eval anything that can harm the bot or the server.
+            Especially don't eval anything that is illegal.
+            You have been warned from FBI.
+
+            Also, you can't eval anything that is not Python.
+
+            ----------------------------------------
+
+            Available variables:
+            'bot': discord.ext.commands.Bot
+            'discord': discord
+            'commands': discord.ext.commands
+            'context': discord.ext.commands.Context
+
+            ----------------------------------------
+
+            Usage:
+            {self.bot.config.read(list, "BOT", "prefixes")[0]} eval <code>
+
+            <code> must be a valid Python code and must be in a codeblock.
+
+            ----------------------------------------
+
+            Example usages:
+            >> Replaces * to ` to make it work.
+
+            {self.bot.config.read(list, "BOT", "prefixes")[0]} eval ***py
+            print('Hello World!')***
+
+            {self.bot.config.read(list, "BOT", "prefixes")[0]} eval ***py
+            await context.send('Hello World!')***
+
+            {self.bot.config.read(list, "BOT", "prefixes")[0]} eval ***py
+            for guild in bot.guilds:
+                for member in guild.members:
+                    print(member)***
+            ```''')
+
     @hybrid_command(
         name = 'help',
         description = 'Shows this message')
     async def help(self, context: Context, *, command: str = 'overview'):
+        if command.lower() == 'eval':
+            await context.reply(
+                mention_author = False,
+                content = self.Eval())
+            return
 
         def build_embed(command: str) -> Embed:
             try: embed = getattr(self, command.capitalize())()
